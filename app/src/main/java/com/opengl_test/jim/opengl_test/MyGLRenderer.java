@@ -17,6 +17,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
     private static final String TAG = "MyGLRenderer";
     private Triangle mTriangle;
+    private Lines mLines;
     private Square mSquare;
     private final float[] mMVPMatrix = new float[16];
     private final float[] mProjectionMatrix = new float[16];
@@ -29,9 +30,9 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         MyGLRenderer.checkGlError("glClearColor");
         // Initialise a Triangle
-        mTriangle = new Triangle();
-
-        mSquare = new Square();
+        mTriangle   = new Triangle();
+        mLines      = new Lines();
+        mSquare     = new Square();
     }
 
     @Override
@@ -43,22 +44,25 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         MyGLRenderer.checkGlError("glClear");
 
         // Set the camera position (View matrix)
-        android.opengl.Matrix.setLookAtM(mViewMatrix, 0, 0, 0, -3, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+        android.opengl.Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 6, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
 
-        // Calcu;ate the projection and view transformation
+        // Calculate the projection and view transformation
         android.opengl.Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
 
         // Create a rotation transformation for the triangle
         long time = SystemClock.uptimeMillis() % 4000L;
         float angle = 0.090f * ((int) time);
-        android.opengl.Matrix.setRotateM(mRotationMatrix, 0, angle, 0, 0, -1.0f);
+        android.opengl.Matrix.setRotateM(mRotationMatrix, 0, angle, 0.5f, -1.0f, 0.2f);
+
 
         // Combine the rotation matrix with the projection and camera view
         // Note that the mMVPMatrix factor *must be first* in order
         // for the matrix multiplication product to be correct.
         android.opengl.Matrix.multiplyMM(scratch, 0, mMVPMatrix, 0, mRotationMatrix, 0);
 
-        mSquare.draw(scratch);
+//        mSquare.draw(scratch);
+        mLines.draw(scratch);
+//        mSquare.draw(mMVPMatrix);
 //        mTriangle.draw(scratch);
     }
 
