@@ -1,6 +1,7 @@
 package com.opengl_test.jim.opengl_test;
 
 import android.opengl.GLES20;
+import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -12,7 +13,7 @@ import java.nio.ShortBuffer;
  */
 
 
-public class Lines {
+public class BaseShape {
 
     private FloatBuffer vertexBuffer;
     private ShortBuffer drawListBuffer;
@@ -21,20 +22,9 @@ public class Lines {
     private int mColorHandle;
     static final int COORDS_PER_VERTEX = 3;                 // Number of coordinates per vertex in this array
     private final int vertexStride = COORDS_PER_VERTEX * 4; // 4 bytes per vertex
-    float color[] = { 0, 1, 0, 1.0f };                      // Set the colour with red, green blue and alpha (opacity) values
-    float lineCoords[] = {
-                        0.55f,  0.55f,  0.55f,  //0 top right front
-                       -0.55f,  0.55f,  0.55f,  //1 top left front
-                        0.55f, -0.55f,  0.55f,  //2 bottom right front
-                       -0.55f, -0.55f,  0.55f,  //3 bottom left front
-            
-                        0.55f,  0.55f, -0.55f,  //4 top right back
-                       -0.55f,  0.55f, -0.55f,  //5 top left back
-                        0.55f, -0.55f, -0.55f,  //6 bottom right back
-                       -0.55f, -0.55f, -0.55f   //7 bottom left back
-    };
-
-    private short drawOrder[] = {1, 3, 2, 0, 1, 5, 4, 6, 7, 3, 2, 6, 7, 5, 4, 0}; // order to draw verticies
+    float obj_color[] = { 0, 1, 0, 1.0f };                      // Set the colour with red, green blue and alpha (opacity) values
+    float lineCoords[];
+    private short drawOrder[];
 
     private final String vertexShaderCode =
                     "uniform mat4 uMVPMatrix;" +
@@ -51,21 +41,7 @@ public class Lines {
     // Use to access anf set the view transformations
     private int mMVPMatrixHandle;
 
-    public Lines() {
-
-        // initialise vertex byte buffer for shape coordinates
-        ByteBuffer bb = ByteBuffer.allocateDirect(lineCoords.length * 4 );
-        bb.order(ByteOrder.nativeOrder());
-        vertexBuffer = bb.asFloatBuffer();
-        vertexBuffer.put(lineCoords);
-        vertexBuffer.position(0);
-
-        // initialise byte buffer for the draw list
-        ByteBuffer dlb = ByteBuffer.allocateDirect(drawOrder.length * 2); // short is 2 bytes
-        dlb.order(ByteOrder.nativeOrder());
-        drawListBuffer = dlb.asShortBuffer();
-        drawListBuffer.put(drawOrder);
-        drawListBuffer.position(0);
+    public BaseShape() {
 
         int vertexShader = MyGLRenderer.loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode);
         int fragmentShader = MyGLRenderer.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode);
@@ -81,30 +57,75 @@ public class Lines {
 
     }
 
+    // initialise vertex byte buffer for shape coordinates
+    public void initVertexBuff(float[] lineCoords_in) {
+        lineCoords = lineCoords_in;
+        ByteBuffer bb = ByteBuffer.allocateDirect(lineCoords.length * 4 );
+        bb.order(ByteOrder.nativeOrder());
+        vertexBuffer = bb.asFloatBuffer();
+        vertexBuffer.put(lineCoords);
+        vertexBuffer.position(0);
+    }
+
+    // initialise byte buffer for the draw list
+    public void initListBuff(short[] drawOrder_in) {
+        drawOrder = drawOrder_in;
+        ByteBuffer dlb = ByteBuffer.allocateDirect(drawOrder.length * 2); // short is 2 bytes
+        dlb.order(ByteOrder.nativeOrder());
+        drawListBuffer = dlb.asShortBuffer();
+        drawListBuffer.put(drawOrder);
+        drawListBuffer.position(0);
+    }
+
+    public void initColor(float[] color) {
+        obj_color = color;
+    }
+
     public void draw(float[] mvpMatrix) { // Pass in calculated xform matrix
-        // Add program to OpenGL ES enviroment
+
+        // Add program to OpenGL ES environment
         GLES20.glUseProgram(mProgram);
+        MyGLRenderer.checkGlError("glUseProgram");
 
         // get handle to vertex shaders vPosition member
         mPositionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
+        MyGLRenderer.checkGlError("glGetAttribLocation");
+
         // Enable a handle to the line verticies
         GLES20.glEnableVertexAttribArray(mPositionHandle);
-        // Prepare the triangle coodinate data
+        MyGLRenderer.checkGlError("glEnableVertexAttrib");
+
+        // Prepare the coodinate data
         GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX, GLES20.GL_FLOAT,
-                false, vertexStride, vertexBuffer);
+                                        false, vertexStride, vertexBuffer);
+        MyGLRenderer.checkGlError("glVertexAttribPointer");
+
         // get handle to fragment shaders vColor member
         mColorHandle = GLES20.glGetUniformLocation(mProgram, "vColor");
+        MyGLRenderer.checkGlError("glGetUniformLocation");
+
         // Set color for drawing the lines
-        GLES20.glUniform4fv(mColorHandle, 1, color, 0);
-        // get handle to shapes xformation matrix
+        GLES20.glUniform4fv(mColorHandle, 1, obj_color, 0);
+        MyGLRenderer.checkGlError("glUniform4fv");
+
+        // get handle to shapes transformation matrix
         mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
-        // Pass the projection and view xformation to the view shader
+        MyGLRenderer.checkGlError("glGetUniformLocation");
+
+        // Pass the projection and view transformation to the view shader
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mvpMatrix, 0);
+        MyGLRenderer.checkGlError("glUniformMatrix4fv");
+
+        // Set the line width
+        GLES20.glLineWidth(2);
+        MyGLRenderer.checkGlError("glLineWidth");
 
         // Draw the lines
         GLES20.glDrawElements(GLES20.GL_LINE_LOOP, drawOrder.length, GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
+        MyGLRenderer.checkGlError("glDrawElements");
 
         // Disable the vertex array
         GLES20.glDisableVertexAttribArray(mPositionHandle);
+        MyGLRenderer.checkGlError("glDisableVertexAttribArray");
     }
 }

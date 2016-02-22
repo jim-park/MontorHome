@@ -1,6 +1,7 @@
 package com.opengl_test.jim.opengl_test;
 
 import android.graphics.Matrix;
+import android.opengl.GLES10;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 
@@ -9,30 +10,83 @@ import javax.microedition.khronos.opengles.GL10;
 
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.Display;
+import android.content.res.Configuration;
+import android.view.WindowManager;
+import android.view.Surface;
+import android.content.Context;
+import android.app.Activity;
 
 /**
  * Created by jim on 25/1/2559.
  */
 public class MyGLRenderer implements GLSurfaceView.Renderer {
 
-    private static final String TAG = "MyGLRenderer";
-    private Triangle mTriangle;
-    private Lines mLines;
-    private Square mSquare;
-    private final float[] mMVPMatrix = new float[16];
-    private final float[] mProjectionMatrix = new float[16];
-    private final float[] mViewMatrix = new float[16];
-    private final float[] mRotationMatrix = new float[16];
+    private static final String     TAG = "MyGLRenderer";
+    private LHBody                  mLHBody;
+    private LHDoor                  mLHDoor;
+    private LHCab                   mLHCab;
+    private LHCabWin                mLHCabWin;
+    private LHMainWinI              mLHMainWinI;
+    private LHMainWinO              mLHMainWinO;
+    private LHTopWinI               mLHTopWinI;
+    private RHBotFlash              mRHBotFlash;
+    private LHBotFlash              mLHBotFlash;
+    private RHBody                  mRHBody;
+    private RHCab                   mRHCab;
+    private RHDoor                  mRHDoor;
+    private RHCabWin                mRHCabWin;
+    private RHMainWinI              mRHMainWinI;
+    private RHMainWinO              mRHMainWinO;
+    private RHTopWinI               mRHTopWinI;
+    private LHStoreO                mLHStoreO;
+    private LHStoreI                mLHStoreI;
+    private LHStoreCatch            mLHStoreCatch;
+    private final float[]           mMVPMatrix = new float[16];
+    private final float[]           mProjectionMatrix = new float[16];
+    private final float[]           mViewMatrix = new float[16];
+    private final float[]           mRotationMatrix = new float[16];
+    private int orientation;
+    public volatile float           mAngle;
+
+
+    public MyGLRenderer(int orientation) {
+        super();
+        this.orientation = orientation;
+        Log.e(TAG, "Constructor orientation: " + this.orientation);
+    }
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         // Set the background frame color
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         MyGLRenderer.checkGlError("glClearColor");
-        // Initialise a Triangle
-        mTriangle   = new Triangle();
-        mLines      = new Lines();
-        mSquare     = new Square();
+
+        // Initialise bits
+        // Lefts
+        mLHBody       = new LHBody();
+        mLHCab        = new LHCab();
+        mLHDoor       = new LHDoor();
+        mLHCabWin     = new LHCabWin();
+        mLHMainWinI   = new LHMainWinI();
+        mLHMainWinO   = new LHMainWinO();
+        mLHTopWinI    = new LHTopWinI();
+        mLHStoreCatch = new LHStoreCatch();
+        mLHStoreO     = new LHStoreO();
+        mLHStoreI     = new LHStoreI();
+        mLHBotFlash   = new LHBotFlash();
+        // Rights
+        mRHBody       = new RHBody();
+        mRHCab        = new RHCab();
+        mRHDoor       = new RHDoor();
+        mRHCabWin     = new RHCabWin();
+        mRHMainWinO   = new RHMainWinO();
+        mRHTopWinI    = new RHTopWinI();
+        mRHBotFlash   = new RHBotFlash();
+        mRHMainWinI   = new RHMainWinI();
+//      Log.e(TAG, "onSurfaceCreated: called");
+//        Display display = ((WindowManager) this.getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+//        int orientation = display.getRotation();
     }
 
     @Override
@@ -43,16 +97,23 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
         MyGLRenderer.checkGlError("glClear");
 
-        // Set the camera position (View matrix)
-        android.opengl.Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 6, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
 
+        // make bigger for wide view
+        if ( this.orientation == 1 || this.orientation == 3) {
+            // Set the camera position (View matrix)
+            Log.e(TAG, "onDrawFram: move camera back");
+            android.opengl.Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 5f, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+        } else {
+            // Set the camera position (View matrix)
+            android.opengl.Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 5, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+        }
         // Calculate the projection and view transformation
         android.opengl.Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
 
         // Create a rotation transformation for the triangle
-        long time = SystemClock.uptimeMillis() % 4000L;
-        float angle = 0.090f * ((int) time);
-        android.opengl.Matrix.setRotateM(mRotationMatrix, 0, angle, 0.5f, -1.0f, 0.2f);
+//        long time = SystemClock.uptimeMillis() % 4000L;
+//        float angle = 0.090f * ((int) time);
+        android.opengl.Matrix.setRotateM(mRotationMatrix, 0, mAngle, 0.0f, -0.5f, 0.0f);
 
 
         // Combine the rotation matrix with the projection and camera view
@@ -60,22 +121,47 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         // for the matrix multiplication product to be correct.
         android.opengl.Matrix.multiplyMM(scratch, 0, mMVPMatrix, 0, mRotationMatrix, 0);
 
-//        mSquare.draw(scratch);
-        mLines.draw(scratch);
-//        mSquare.draw(mMVPMatrix);
-//        mTriangle.draw(scratch);
+        // Lefts
+        mLHBody.draw(scratch);
+        mLHDoor.draw(scratch);
+        mLHCab.draw(scratch);
+        mLHCabWin.draw(scratch);
+        mLHMainWinO.draw(scratch);
+        mLHMainWinI.draw(scratch);
+        mLHTopWinI.draw(scratch);
+        mLHStoreO.draw(scratch);
+        mLHStoreI.draw(scratch);
+        mLHStoreCatch.draw(scratch);
+        mLHBotFlash.draw(scratch);
+        // Rights
+        mRHBody.draw(scratch);
+        mRHCab.draw(scratch);
+        mRHCabWin.draw(scratch);
+        mRHDoor.draw(scratch);
+        mRHMainWinO.draw(scratch);
+        mRHTopWinI.draw(scratch);
+        mRHBotFlash.draw(scratch);
+        mRHMainWinI.draw(scratch);
     }
 
     @Override
-    public void onSurfaceChanged(GL10 unused, int width, int height) {
+    public void onSurfaceChanged(GL10 gl, int width, int height) {
         GLES20.glViewport(0, 0, width, height);
         MyGLRenderer.checkGlError("glViewPort");
 
         float ratio = (float) width / height;
-
         // This projection Matrix is applied to object coordinates
         // in the onDrawFrame method.
-        android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
+
+        // make bigger for wide view
+        if ( this.orientation == 1 || this.orientation == 3 ) {
+            Log.e(TAG, "onDrawFrame: scaled Proj Matrix");
+            Log.e(TAG, "onDrawFrame: ratio: "  + ratio + ", left: " + (-ratio+1) + ", right: " + (ratio-1));
+            android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio + 1, ratio - 1, -0.5f, 0.5f, 4, 7);
+        } else {
+            android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
+        }
+        Log.e(TAG, "onSurfaceChanged: called");
     }
 
     public static int loadShader(int type, String shaderCode) {
@@ -93,6 +179,18 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
         return shader;
     }
+
+    public float getAngle() {
+        return mAngle;
+    }
+
+    public void setAngle(float angle) {
+        mAngle = angle;
+    }
+
+
+
+
 
    /**
     * Utility method for debugging OpenGL calls. Provide the name of the call

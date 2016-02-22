@@ -3,6 +3,7 @@ package com.opengl_test.jim.opengl_test;
 import javax.microedition.khronos.opengles.GL10;
 import javax.microedition.khronos.egl.EGLConfig;
 
+import android.app.Activity;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -21,13 +22,14 @@ import java.nio.FloatBuffer;
 
 import com.opengl_test.jim.opengl_test.*;
 
-public class ShowShape extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     private GLSurfaceView mGLView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
 
         // Create a GLSurfaceView instance and set it
         // as the ContentView for this Activity.
@@ -36,7 +38,7 @@ public class ShowShape extends AppCompatActivity {
     }
 
 /*
-        setContentView(R.layout.activity_show_shape);
+        setContentView(R.layout.activity_mainactivity);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -53,7 +55,7 @@ public class ShowShape extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_show_shape, menu);
+        getMenuInflater().inflate(R.menu.menu_mainactivity, menu);
         return true;
     }
 
