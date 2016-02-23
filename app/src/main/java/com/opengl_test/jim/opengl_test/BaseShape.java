@@ -26,6 +26,10 @@ public class BaseShape {
     float lineCoords[];
     private short drawOrder[];
 
+    float red = 1.0f;
+    float prev_red = red;
+    float l_width = 2.0f;
+
     private final String vertexShaderCode =
                     "uniform mat4 uMVPMatrix;" +
                     "attribute vec4 vPosition;" +
@@ -81,7 +85,24 @@ public class BaseShape {
         obj_color = color;
     }
 
-    public void draw(float[] mvpMatrix) { // Pass in calculated xform matrix
+    public void draw( float[] mvpMatrix, int alert ) { // Pass in calculated xform matrix, and red colour
+
+        if ( alert == 1 ) {
+            obj_color[1] = 0;   // Green off
+            // counting down
+            if ( prev_red > obj_color[0] || obj_color[0] >= 1.0f ) {
+                prev_red = obj_color[0];
+                l_width = l_width - 0.2f;
+                obj_color[0] = obj_color[0] - 0.05f;
+            }
+            // counting up
+            if ( prev_red < obj_color[0] || obj_color[0] <= 0.0f ) {
+                prev_red = obj_color[0];
+                l_width = l_width + 0.2f;
+                obj_color[0] = obj_color[0] + 0.05f;
+            }
+        }
+
 
         // Add program to OpenGL ES environment
         GLES20.glUseProgram(mProgram);
@@ -117,7 +138,7 @@ public class BaseShape {
         MyGLRenderer.checkGlError("glUniformMatrix4fv");
 
         // Set the line width
-        GLES20.glLineWidth(2);
+        GLES20.glLineWidth(l_width);
         MyGLRenderer.checkGlError("glLineWidth");
 
         // Draw the lines

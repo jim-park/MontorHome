@@ -105,12 +105,8 @@ public class LHMainWinO extends BaseShape {
                             81, 82, 83, 84,
                         };
 
-    float color[] = { 1, 0, 0, 1.0f };  // Set the colour with red, green blue and alpha (opacity) values
-
-
-    public LHMainWinO(){
+    public LHMainWinO() {
         this.initVertexBuff(lineCoords);
         this.initListBuff(drawOrder);
-        this.initColor(color);
     }
 }

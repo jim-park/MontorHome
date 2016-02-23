@@ -39,15 +39,23 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     private RHMainWinI              mRHMainWinI;
     private RHMainWinO              mRHMainWinO;
     private RHTopWinI               mRHTopWinI;
+    private RHGasStore              mRHGasStore;
+    private RHGasCatch              mRHGasCatch;
     private LHStoreO                mLHStoreO;
     private LHStoreI                mLHStoreI;
     private LHStoreCatch            mLHStoreCatch;
+    private BackWinI                mBackWinI;
+    private FrontWin                mFrontWin;
     private final float[]           mMVPMatrix = new float[16];
     private final float[]           mProjectionMatrix = new float[16];
     private final float[]           mViewMatrix = new float[16];
     private final float[]           mRotationMatrix = new float[16];
     private int orientation;
     public volatile float           mAngle;
+
+    float red = 1.0f;
+    float prev_red = red;
+    float l_width = 5.0f;
 
 
     public MyGLRenderer(int orientation) {
@@ -84,6 +92,12 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         mRHTopWinI    = new RHTopWinI();
         mRHBotFlash   = new RHBotFlash();
         mRHMainWinI   = new RHMainWinI();
+        mRHGasStore   = new RHGasStore();
+        mRHGasCatch   = new RHGasCatch();
+
+        mBackWinI     = new BackWinI();
+        mFrontWin     = new FrontWin();
+
 //      Log.e(TAG, "onSurfaceCreated: called");
 //        Display display = ((WindowManager) this.getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 //        int orientation = display.getRotation();
@@ -101,7 +115,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         // make bigger for wide view
         if ( this.orientation == 1 || this.orientation == 3) {
             // Set the camera position (View matrix)
-            Log.e(TAG, "onDrawFram: move camera back");
+//            Log.e(TAG, "onDrawFram: move camera back");
             android.opengl.Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 5f, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
         } else {
             // Set the camera position (View matrix)
@@ -121,27 +135,36 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         // for the matrix multiplication product to be correct.
         android.opengl.Matrix.multiplyMM(scratch, 0, mMVPMatrix, 0, mRotationMatrix, 0);
 
-        // Lefts
-        mLHBody.draw(scratch);
-        mLHDoor.draw(scratch);
-        mLHCab.draw(scratch);
-        mLHCabWin.draw(scratch);
-        mLHMainWinO.draw(scratch);
-        mLHMainWinI.draw(scratch);
-        mLHTopWinI.draw(scratch);
-        mLHStoreO.draw(scratch);
-        mLHStoreI.draw(scratch);
-        mLHStoreCatch.draw(scratch);
-        mLHBotFlash.draw(scratch);
-        // Rights
-        mRHBody.draw(scratch);
-        mRHCab.draw(scratch);
-        mRHCabWin.draw(scratch);
-        mRHDoor.draw(scratch);
-        mRHMainWinO.draw(scratch);
-        mRHTopWinI.draw(scratch);
-        mRHBotFlash.draw(scratch);
-        mRHMainWinI.draw(scratch);
+
+        // Draw chassis
+        mLHBody.draw(scratch, 0);
+        mRHBody.draw(scratch, 0);
+        mLHDoor.draw(scratch, 0);
+        mRHDoor.draw(scratch, 0);
+        mLHCab.draw(scratch, 0);
+        mRHCab.draw(scratch, 0);
+        mLHCabWin.draw(scratch, 0);
+        mRHCabWin.draw(scratch, 0);
+        mLHBotFlash.draw(scratch, 0);
+        mRHBotFlash.draw(scratch, 0);
+        mFrontWin.draw(scratch, 0);
+
+        // Alertable
+        mLHMainWinO.draw(scratch, 1);
+        mLHMainWinI.draw(scratch, 1);
+        mLHTopWinI.draw(scratch, 0);
+        mLHStoreO.draw(scratch, 0);
+        mLHStoreI.draw(scratch, 0);
+        mLHStoreCatch.draw(scratch, 0);
+        mRHMainWinO.draw(scratch, 0);
+        mRHMainWinI.draw(scratch, 0);
+        mRHTopWinI.draw(scratch, 0);
+        mRHGasStore.draw(scratch, 0);
+        mRHGasCatch.draw(scratch, 0);
+        mBackWinI.draw(scratch, 0);
+
+       // Log.e(TAG, "onDrawFrame: called [red: " + red + "]");
+
     }
 
     @Override
@@ -155,8 +178,8 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
         // make bigger for wide view
         if ( this.orientation == 1 || this.orientation == 3 ) {
-            Log.e(TAG, "onDrawFrame: scaled Proj Matrix");
-            Log.e(TAG, "onDrawFrame: ratio: "  + ratio + ", left: " + (-ratio+1) + ", right: " + (ratio-1));
+//            Log.e(TAG, "onDrawFrame: scaled Proj Matrix");
+//            Log.e(TAG, "onDrawFrame: ratio: "  + ratio + ", left: " + (-ratio+1) + ", right: " + (ratio-1));
             android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio + 1, ratio - 1, -0.5f, 0.5f, 4, 7);
         } else {
             android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);

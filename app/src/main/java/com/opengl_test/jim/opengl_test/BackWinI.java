@@ -3,9 +3,15 @@ package com.opengl_test.jim.opengl_test;
 /**
  * Created by jim on 8/2/2559.
  */
-public class LHMainWinI extends BaseShape {
+public class BackWinI extends BaseShape {
 
     float lineCoords[] =  {
+
+            0.751071f, 0.17119f, 0.15f,   // Top Left
+            0.751071f, 0.018934f, 0.15f,  // Bot Left
+            0.751071f, 0.018934f, -0.15f, // Bot Right
+            0.751071f, 0.17119f,  -0.15f  // Top Right
+            /*
             -0.151748f, 0.164069f, 0.3f,
             -0.151748f, 0.026506f, 0.3f,
             -0.151746f, 0.02636f, 0.3f,
@@ -91,21 +97,12 @@ public class LHMainWinI extends BaseShape {
             -0.151791f, 0.165203f, 0.3f,
             -0.151794f, 0.164607f, 0.3f,
             -0.151766f, 0.164212f, 0.3f,
-
+*/
     };
 
-    short drawOrder[] = {   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                            11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-                            21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-                            31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-                            41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-                            51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
-                            61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
-                            71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
-                            81, 82, 83, 84,
-                        };
+    short drawOrder[] = { 0, 1, 2, 3 };
 
-    public LHMainWinI() {
+    public BackWinI() {
         this.initVertexBuff(lineCoords);
         this.initListBuff(drawOrder);
     }

@@ -9,7 +9,7 @@ public class RHBotFlash extends BaseShape {
     float lineCoords[] =  {
 
             -0.252249f, -0.228756f, -0.3f,
-            0.751634f, -0.228756f, -0.3f,
+            0.71645f, -0.230319f, -0.3f,
 
     };
 
