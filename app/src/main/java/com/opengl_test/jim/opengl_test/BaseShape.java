@@ -15,6 +15,7 @@ import java.nio.ShortBuffer;
 
 public class BaseShape {
 
+    private final String TAG = "BaseShape";
     private FloatBuffer vertexBuffer;
     private ShortBuffer drawListBuffer;
     private final int mProgram;
@@ -85,7 +86,7 @@ public class BaseShape {
         obj_color = color;
     }
 
-    public void draw( float[] mvpMatrix, int alert ) { // Pass in calculated xform matrix, and red colour
+    public void draw( float[] mvpMatrix, int alert ) { // Pass in calculated xform matrix, and alert flag
 
         if ( alert == 1 ) {
             obj_color[1] = 0;   // Green off
@@ -101,9 +102,13 @@ public class BaseShape {
                 l_width = l_width + 0.2f;
                 obj_color[0] = obj_color[0] + 0.05f;
             }
+        } else {
+            obj_color[0] = 0; // Red off
+            obj_color[1] = 1; // Green on
+            obj_color[2] = 0; // Blue off
+            l_width = 2.0f;
         }
-
-
+        
         // Add program to OpenGL ES environment
         GLES20.glUseProgram(mProgram);
         MyGLRenderer.checkGlError("glUseProgram");

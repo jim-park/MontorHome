@@ -25,7 +25,7 @@ public class MyGLSurfaceView extends GLSurfaceView {
         Display display = ((WindowManager) this.getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         int orientation = display.getRotation();
 
-        Log.e("MYGLSurfaceView", "ORIENTATION: " + orientation);
+        Log.i("MYGLSurfaceView", "ORIENTATION: " + orientation);
 
         // Create an Open GL ES 2.0 Context.
         setEGLContextClientVersion(2);

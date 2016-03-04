@@ -53,6 +53,8 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     private int orientation;
     public volatile float           mAngle;
 
+    public static int isAlertMainLHWin = 0;
+
     float red = 1.0f;
     float prev_red = red;
     float l_width = 5.0f;
@@ -61,7 +63,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     public MyGLRenderer(int orientation) {
         super();
         this.orientation = orientation;
-        Log.e(TAG, "Constructor orientation: " + this.orientation);
+        Log.i(TAG, "Constructor orientation: " + this.orientation);
     }
 
     @Override
@@ -150,8 +152,8 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         mFrontWin.draw(scratch, 0);
 
         // Alertable
-        mLHMainWinO.draw(scratch, 1);
-        mLHMainWinI.draw(scratch, 1);
+        mLHMainWinO.draw(scratch, isAlertMainLHWin);
+        mLHMainWinI.draw(scratch, isAlertMainLHWin);
         mLHTopWinI.draw(scratch, 0);
         mLHStoreO.draw(scratch, 0);
         mLHStoreI.draw(scratch, 0);
@@ -184,7 +186,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         } else {
             android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
         }
-        Log.e(TAG, "onSurfaceChanged: called");
+        Log.i(TAG, "onSurfaceChanged: called");
     }
 
     public static int loadShader(int type, String shaderCode) {
@@ -211,8 +213,9 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         mAngle = angle;
     }
 
-
-
+    public static void setAlertMainLHWin(boolean alert_flg) {
+        isAlertMainLHWin = (alert_flg) ? 1 : 0;
+    }
 
 
    /**

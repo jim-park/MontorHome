@@ -3,10 +3,16 @@ package com.opengl_test.jim.opengl_test;
 import javax.microedition.khronos.opengles.GL10;
 import javax.microedition.khronos.egl.EGLConfig;
 
-import android.app.Activity;
-import android.opengl.GLES20;
+import android.content.Intent;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.app.Activity;
+import android.app.IntentService;
+import android.os.Handler;
+import android.util.Log;
+
+/*
+import android.opengl.GLES20;
 import android.os.Handler;
 import android.util.Log;
 import android.support.design.widget.FloatingActionButton;
@@ -24,18 +30,41 @@ import java.nio.FloatBuffer;
 
 import com.opengl_test.jim.opengl_test.*;
 
+*/
+// Server API Key
+// AIzaSyCP55eg2J2ZPhexPHcHyNKXpDUDTWakAvY
+//
+// Sender ID (Project number)
+// 162524205106
+
 public class MainActivity extends Activity {
 
     private GLSurfaceView mGLView;
+    private RegistrationIntentService mRegService;
+    public static Handler handler = new Handler();
+    String TAG = "MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // TODO: Check device for a compatible Google Play services APK - here and in onResume()
+        //       http://developer.android.com/google/play-services/setup.html
+
+        // Start Services
+        Intent regIntent = new Intent(this, RegistrationIntentService.class);
+        try {
+            startService(regIntent);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start Service: " + e);
+        }
+
+
         // Create a GLSurfaceView instance and set it
         // as the ContentView for this Activity.
         mGLView = new MyGLSurfaceView(this);
         setContentView(mGLView);
+
     }
 
 /*
