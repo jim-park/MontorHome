@@ -17,6 +17,9 @@ import android.view.Surface;
 import android.content.Context;
 import android.app.Activity;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by jim on 25/1/2559.
  */
@@ -54,7 +57,10 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     public volatile float           mAngle;
 
     public static int isAlertMainLHWin = 0;
+    HashMap<String, Boolean> alerts = new HashMap<String, Boolean>();
 
+
+    // Line properties
     float red = 1.0f;
     float prev_red = red;
     float l_width = 5.0f;
@@ -64,6 +70,15 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         super();
         this.orientation = orientation;
         Log.i(TAG, "Constructor orientation: " + this.orientation);
+
+        // Initalise all alerts to off
+        alerts.put("mainLHWin", false);
+        alerts.put("topLHWin",  false);
+        alerts.put("LHStore",   false);
+        alerts.put("mainRHWin", false);
+        alerts.put("topRHWin",  false);
+        alerts.put("gasStore",  false);
+        alerts.put("backWin",   false);
     }
 
     @Override
@@ -113,16 +128,9 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
         MyGLRenderer.checkGlError("glClear");
 
+        // Set the camera position (View matrix)
+        android.opengl.Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 5f, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
 
-        // make bigger for wide view
-        if ( this.orientation == 1 || this.orientation == 3) {
-            // Set the camera position (View matrix)
-//            Log.e(TAG, "onDrawFram: move camera back");
-            android.opengl.Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 5f, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
-        } else {
-            // Set the camera position (View matrix)
-            android.opengl.Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 5, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
-        }
         // Calculate the projection and view transformation
         android.opengl.Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
 
@@ -139,31 +147,31 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
 
         // Draw chassis
-        mLHBody.draw(scratch, 0);
-        mRHBody.draw(scratch, 0);
-        mLHDoor.draw(scratch, 0);
-        mRHDoor.draw(scratch, 0);
-        mLHCab.draw(scratch, 0);
-        mRHCab.draw(scratch, 0);
-        mLHCabWin.draw(scratch, 0);
-        mRHCabWin.draw(scratch, 0);
-        mLHBotFlash.draw(scratch, 0);
-        mRHBotFlash.draw(scratch, 0);
-        mFrontWin.draw(scratch, 0);
+        mLHBody.draw(scratch, false);
+        mRHBody.draw(scratch, false);
+        mLHDoor.draw(scratch, false);
+        mRHDoor.draw(scratch, false);
+        mLHCab.draw(scratch, false);
+        mRHCab.draw(scratch, false);
+        mLHCabWin.draw(scratch, false);
+        mRHCabWin.draw(scratch, false);
+        mLHBotFlash.draw(scratch, false);
+        mRHBotFlash.draw(scratch, false);
+        mFrontWin.draw(scratch, false);
 
         // Alertable
-        mLHMainWinO.draw(scratch, isAlertMainLHWin);
-        mLHMainWinI.draw(scratch, isAlertMainLHWin);
-        mLHTopWinI.draw(scratch, 0);
-        mLHStoreO.draw(scratch, 0);
-        mLHStoreI.draw(scratch, 0);
-        mLHStoreCatch.draw(scratch, 0);
-        mRHMainWinO.draw(scratch, 0);
-        mRHMainWinI.draw(scratch, 0);
-        mRHTopWinI.draw(scratch, 0);
-        mRHGasStore.draw(scratch, 0);
-        mRHGasCatch.draw(scratch, 0);
-        mBackWinI.draw(scratch, 0);
+        mLHMainWinO.draw(scratch, alerts.get("mainLHWin"));
+        mLHMainWinI.draw(scratch, alerts.get("mainLHWin"));
+        mLHTopWinI.draw(scratch, alerts.get("topLHWin"));
+        mLHStoreO.draw(scratch, alerts.get("LHStore"));
+        mLHStoreI.draw(scratch, alerts.get("LHStore"));
+        mLHStoreCatch.draw(scratch, alerts.get("LHStore"));
+        mRHMainWinO.draw(scratch, alerts.get("mainRHWin"));
+        mRHMainWinI.draw(scratch, alerts.get("mainRHWin"));
+        mRHTopWinI.draw(scratch, alerts.get("mainRHWin"));
+        mRHGasStore.draw(scratch, alerts.get("gasStore"));
+        mRHGasCatch.draw(scratch, alerts.get("gasStore"));
+        mBackWinI.draw(scratch, alerts.get("backWin"));
 
        // Log.e(TAG, "onDrawFrame: called [red: " + red + "]");
 
@@ -178,15 +186,18 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         // This projection Matrix is applied to object coordinates
         // in the onDrawFrame method.
 
+        Log.i(TAG, "onSurfaceChanged - ratio: " + ratio);
         // make bigger for wide view
         if ( this.orientation == 1 || this.orientation == 3 ) {
-//            Log.e(TAG, "onDrawFrame: scaled Proj Matrix");
-//            Log.e(TAG, "onDrawFrame: ratio: "  + ratio + ", left: " + (-ratio+1) + ", right: " + (ratio-1));
-            android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio + 1, ratio - 1, -0.5f, 0.5f, 4, 7);
+//            Log.i(TAG, "onSurfaceChanged: Horizontal");
+//                                frustumM(m, offset, left, right, bottom, top, near, far)
+//            ratio: 1.9104477 - (m, offset, -0.91, 0.91, -0.5, 0.5, 4, 7)
+            android.opengl.Matrix.frustumM(mProjectionMatrix, 0, (-ratio + 1), (ratio - 1), -0.5f, 0.5f, 4, 7);
         } else {
-            android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
+//            ratio: 1.2949641 - (m, offset, −0.79, 0.79, -0.66, -0.66, 4, 7)
+            android.opengl.Matrix.frustumM(mProjectionMatrix, 0, (-ratio + 0.5f), (ratio - 0.5f), -0.66f, 0.66f, 4, 7);
         }
-        Log.i(TAG, "onSurfaceChanged: called");
+//        Log.i(TAG, "onSurfaceChanged: called");
     }
 
     public static int loadShader(int type, String shaderCode) {

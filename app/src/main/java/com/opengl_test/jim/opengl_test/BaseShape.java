@@ -86,9 +86,9 @@ public class BaseShape {
         obj_color = color;
     }
 
-    public void draw( float[] mvpMatrix, int alert ) { // Pass in calculated xform matrix, and alert flag
+    public void draw( float[] mvpMatrix, boolean alert ) { // Pass in calculated xform matrix, and alert flag
 
-        if ( alert == 1 ) {
+        if ( alert ) {
             obj_color[1] = 0;   // Green off
             // counting down
             if ( prev_red > obj_color[0] || obj_color[0] >= 1.0f ) {

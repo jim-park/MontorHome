@@ -1,25 +1,26 @@
 package com.opengl_test.jim.opengl_test;
 
-import javax.microedition.khronos.opengles.GL10;
-import javax.microedition.khronos.egl.EGLConfig;
-
+import android.app.Fragment;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.app.Activity;
-import android.app.IntentService;
 import android.os.Handler;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+
+import android.support.v7.widget.Toolbar;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
+import android.view.View;
+
+
 
 /*
 import android.opengl.GLES20;
 import android.os.Handler;
 import android.util.Log;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.content.Context;
@@ -28,7 +29,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
-import com.opengl_test.jim.opengl_test.*;
 
 */
 // Server API Key
@@ -37,11 +37,8 @@ import com.opengl_test.jim.opengl_test.*;
 // Sender ID (Project number)
 // 162524205106
 
-public class MainActivity extends Activity {
+public class MainActivity extends FragmentActivity {
 
-    private GLSurfaceView mGLView;
-    private RegistrationIntentService mRegService;
-    public static Handler handler = new Handler();
     String TAG = "MainActivity";
 
     @Override
@@ -58,21 +55,33 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             Log.e(TAG, "Failed to start Service: " + e);
         }
-
-
-        // Create a GLSurfaceView instance and set it
-        // as the ContentView for this Activity.
-        mGLView = new MyGLSurfaceView(this);
-        setContentView(mGLView);
-
+/*
+        start preferences view
+        Intent i = new Intent(this, MyPreferencesActivity.class);
+        startActivity(i);
+*/
+        // Set Content View ( calls fragments )
+        setContentView(R.layout.activity_main);
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration config) {
+        Log.i(TAG, "onConfugurationChanged: Called");
+        /*
+        if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            setContentView(R.layout.activity_main_horiz);
+        }
+        */
+        Log.i(TAG, "onConfugurationChanged: Exiting");
+    }
+
+
 /*
-        setContentView(R.layout.activity_mainactivity);
+        setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-       FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -82,6 +91,8 @@ public class MainActivity extends Activity {
         });
     }
 
+
+/*
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/RelativeLayout1"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_weight="1"
+    android:baselineAligned="false"
+    android:orientation="vertical"
+    tools:context=".MainActivity" >
+
+    <fragment
+        android:id="@+id/basestatsView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        class="com.opengl_test.jim.opengl_test.BaseStatsFragment"
+        tools:layout="@layout/fragmentbasestats"
+        android:layout_weight="0" />
+
+    <fragment
+        android:id="@+id/schematicView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        class="com.opengl_test.jim.opengl_test.SchematicFragment"
+        tools:layout="@layout/fragmentschematic"
+        android:layout_weight="1" />
+
+</LinearLayout>

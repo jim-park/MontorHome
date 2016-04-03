@@ -18,6 +18,7 @@ public class MyGLSurfaceView extends GLSurfaceView {
     private final float TOUCH_SCALE_FACTOR = 180.0f / 320;
     private float mPreviousX;
     private float mPreviousY;
+    private String TAG = "MYGLSurfaceView";
 
     public MyGLSurfaceView(Context context) {
         super(context);
@@ -25,7 +26,7 @@ public class MyGLSurfaceView extends GLSurfaceView {
         Display display = ((WindowManager) this.getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         int orientation = display.getRotation();
 
-        Log.i("MYGLSurfaceView", "ORIENTATION: " + orientation);
+        Log.i(TAG, "ORIENTATION: " + orientation);
 
         // Create an Open GL ES 2.0 Context.
         setEGLContextClientVersion(2);
@@ -73,6 +74,7 @@ public class MyGLSurfaceView extends GLSurfaceView {
         };
         mPreviousX = x;
         mPreviousY = y;
+
         return true;
-    };
+    }
 }
