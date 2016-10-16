@@ -1,0 +1,1 @@
+msp430-gcc -mmcu=msp430g2231 -o msp430_sample.hex startup.c
