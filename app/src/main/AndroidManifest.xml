@@ -3,28 +3,31 @@
     package="com.opengl_test.jim.opengl_test">
 
     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
-
     <permission android:name="com.opengl_test.jim.opengl_test.permission.C2D_MESSAGE" />
-
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Triangulator"
+        android:label="MontorHome"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        <!--android:theme="@style/AppTheme"-->
 
 
         <activity
             android:name=".MainActivity"
-            android:label="Triangulator"
-            android:configChanges="orientation"
+            android:label="MontorHome"
+            android:configChanges="orientation|screenSize"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".SettingsActivity"
+            android:label="MontorHome Settings" >
         </activity>
         <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
              App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->

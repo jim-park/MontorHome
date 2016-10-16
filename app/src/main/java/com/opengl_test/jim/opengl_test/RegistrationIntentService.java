@@ -55,7 +55,7 @@ public class RegistrationIntentService extends IntentService {
 
         try {
             // Create connection
-            url = new URL("http://192.168.43.217/api.php");
+            url = new URL("http://192.168.43.220/api.php");
             Log.d(TAG, "connecting ");
             connection = (HttpURLConnection)url.openConnection();
             connection.setRequestMethod("POST");

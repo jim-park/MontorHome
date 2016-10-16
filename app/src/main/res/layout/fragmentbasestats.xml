@@ -102,6 +102,38 @@
                 android:layout_weight="1" />
         </TableRow>
 
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="10dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Leisure Battery: "
+                android:textAlignment="viewEnd"
+                android:layout_gravity="end"
+                android:layout_column="0"
+                android:layout_weight="1"
+                android:id="@+id/batt1voltstext"
+                android:layout_marginRight="10dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0.0"
+                android:layout_column="1"
+                android:id="@+id/batt1voltsvalue"
+                android:layout_weight="0.5"
+                android:textAlignment="center" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Volts"
+                android:layout_column="2"
+                android:id="@+id/batt1units"
+                android:layout_weight="1" />
+        </TableRow>
+
     </TableLayout>
 
     <Space

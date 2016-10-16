@@ -71,14 +71,16 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         this.orientation = orientation;
         Log.i(TAG, "Constructor orientation: " + this.orientation);
 
-        // Initalise all alerts to off
+        // Initalise alerts to off
         alerts.put("mainLHWin", false);
         alerts.put("topLHWin",  false);
         alerts.put("LHStore",   false);
         alerts.put("mainRHWin", false);
         alerts.put("topRHWin",  false);
-        alerts.put("gasStore",  false);
         alerts.put("backWin",   false);
+
+        // Override GasStore alarm to ON
+        alerts.put("gasStore",  true);
     }
 
     @Override
@@ -173,7 +175,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         mRHGasCatch.draw(scratch, alerts.get("gasStore"));
         mBackWinI.draw(scratch, alerts.get("backWin"));
 
-       // Log.e(TAG, "onDrawFrame: called [red: " + red + "]");
+       // Log.e(TAG, "onDrawFrame: called");
 
     }
 
@@ -186,18 +188,11 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         // This projection Matrix is applied to object coordinates
         // in the onDrawFrame method.
 
-        Log.i(TAG, "onSurfaceChanged - ratio: " + ratio);
-        // make bigger for wide view
-        if ( this.orientation == 1 || this.orientation == 3 ) {
-//            Log.i(TAG, "onSurfaceChanged: Horizontal");
-//                                frustumM(m, offset, left, right, bottom, top, near, far)
-//            ratio: 1.9104477 - (m, offset, -0.91, 0.91, -0.5, 0.5, 4, 7)
-            android.opengl.Matrix.frustumM(mProjectionMatrix, 0, (-ratio + 1), (ratio - 1), -0.5f, 0.5f, 4, 7);
-        } else {
-//            ratio: 1.2949641 - (m, offset, −0.79, 0.79, -0.66, -0.66, 4, 7)
-            android.opengl.Matrix.frustumM(mProjectionMatrix, 0, (-ratio + 0.5f), (ratio - 0.5f), -0.66f, 0.66f, 4, 7);
-        }
-//        Log.i(TAG, "onSurfaceChanged: called");
+//      ratio: 1.2949641 - Portrait
+//      ratio: 1.9104477 - Landscape
+
+        android.opengl.Matrix.frustumM(mProjectionMatrix, 0, (-ratio + 0.92f), (ratio - 0.92f), -0.5f, 0.5f, 4.19f, 7);
+//      Log.i(TAG, "onSurfaceChanged: called");
     }
 
     public static int loadShader(int type, String shaderCode) {

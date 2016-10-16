@@ -2,8 +2,11 @@ package com.opengl_test.jim.opengl_test;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 
 import com.google.android.gms.gcm.GcmListenerService;
+
+import static android.app.PendingIntent.getActivity;
 
 /**
  * Created by jim on 4/3/2559.
@@ -14,20 +17,15 @@ public class MyGcmListenerService extends GcmListenerService {
 
     @Override
     public void onMessageReceived(String from, Bundle data) {
-        String message = data.getString("data1");
+        String message = data.getString("batt1");
         Log.d(TAG, "From: " + from);
         Log.d(TAG, "Message: " + message);
 
         if (message != null ) {
-            if (message.matches("1")) {
-                MyGLRenderer.setAlertMainLHWin(true);
-                Log.d(TAG, "setMLHWin Alert: true");
-            } else {
-                MyGLRenderer.setAlertMainLHWin(false);
-                Log.d(TAG, "setMLHWin Alert: false");
-            }
+            Log.d(TAG, "Got Batt 1 Voltage: " + message);
+
         } else {
-            Log.e(TAG, "Got null GCMessage");
+            Log.e(TAG, "No Batt 1 Voltage Found");
         }
     }
 }

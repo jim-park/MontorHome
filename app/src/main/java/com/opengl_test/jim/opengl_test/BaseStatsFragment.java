@@ -17,6 +17,7 @@ public class BaseStatsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragmentbasestats, container, false);
+        Log.d(TAG, "onCreateView");
         return view;
     }
 
