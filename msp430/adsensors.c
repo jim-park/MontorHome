@@ -35,7 +35,8 @@ unsigned char rxBuffer;                     // Received UART character
 // Function prototypes
 //------------------------------------------------------------------------------
 void flash_p16(void);
-void send_sample(unsigned int);
+void send_sample(unsigned int *);
+unsigned int csum(char *);
 void acquire_sample(unsigned int *);
 void ADC10_init(void);
 void GPIO_init(void);
@@ -72,7 +73,7 @@ int main(void)
     flash_p16();
 
     // Send sample over UART
-    send_sample(sample);
+    send_sample(&sample);
 
   }
 }
@@ -90,26 +91,51 @@ void flash_p16(void)
 //------------------------------------------------------------------------------
 // Send 'sample' over UART
 //------------------------------------------------------------------------------
-void send_sample(unsigned int sample)
+void send_sample(unsigned int * sample)
 {
-  static char term_char[4] = "\r\n";
-  char sstring[4] = "";
-  char outstring[32] = "";
+  /* {"id":"0","sensor":{"0":["a","582"]}} */
 
-  memset(outstring, 0, 32 * sizeof(char));         // allocate mem
-  utoa(sample, sstring, 10);
-  strncat(outstring, sstring, 4 * sizeof(char));
-  strncat(outstring, term_char, 4 * sizeof(char));
-  TimerA_UART_print(outstring);
+  /* This is the format to use, much better */
+  /* {"id":"0","sensors":[{"id":"0", "type":"a", "val":"582"}, {"id":"1", "type":"d", "val":"542"}]} */
+  char sstring[4] = "";
+  const char * out_str_start = "{\"id\":\"0\",\"sensors\":"\
+                               "[{\"id\":\"0\",\"type\":\"a\",\"val\":\"";
+  const char * out_str_end = "\"}]} ";
+  char tmpstr[64]  = "";
+  unsigned int chksum = 0;
+
+  utoa(*sample, sstring, 10);
+  strcat(tmpstr, out_str_start);
+  strcat(tmpstr, sstring);
+  strcat(tmpstr, out_str_end);
+  chksum = csum(tmpstr);
+  memset(sstring, 0, 4 * sizeof(char));
+  utoa(chksum, sstring, 16);
+  strcat(tmpstr, sstring);
+  strcat(tmpstr, "\r\n");
+  TimerA_UART_print(tmpstr);
 }
 
+//
+// calculate a simple csum of the data to send with the data
+unsigned int csum(char * str)
+{
+  short unsigned int ret = 0x0;
+  short unsigned int i = 0;
+  
+  for (i=0; i<strlen(str); i++) {
+    ret += str[i];
+  }
+  return ret & 0xFF;
+}
 
 //------------------------------------------------------------------------------
 // Sample using the ADC10 and place result in 'sample' 
 //------------------------------------------------------------------------------
 void acquire_sample(unsigned int * sample)
 {
-  unsigned int cum_sample_tot = 0, i = 0;
+  unsigned int cum_sample_tot = 0;
+  unsigned short int i = 0;
 
   for (i=0; i<64; i++) {
     ADC10CTL0 |= ENC + ADC10SC;				   // Sampling and conversion start
