@@ -44,8 +44,7 @@ class Sock():
   # Recieve
   #
   def recv(self):
-    log.info(self.DT+"recv")
-    ret = False
+    ret     = False
     msg     = ''
     msg_len = 0 
     t = time.time()

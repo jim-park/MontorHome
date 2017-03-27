@@ -22,10 +22,10 @@ sys.path.insert(0, './pylib')
 from Daemon import Daemon
 from Sock import Sock
 from SQLiteDB import SQLiteDB
+from Prot import Prot
 
-#############
+
 # Global constants
-
 NAME    = 'datarxd'
 LOGFILE = './log/datarxd.log'
 PIDFILE = './run/datarxd.pid'
@@ -41,46 +41,15 @@ CLIENTS = [ { "0" : "iw9foj5ojv4dg2vd" }]
 # Class to handle a client connection
 # Run as a thread
 ##################################################
-class Client_t(threading.Thread):
 
-  def __init__(self, socket, name=None):
-    threading.Thread.__init__(self)
-    self._name   = name
-    # Setup logging
-    log.basicConfig(filename=LOGFILE,level=log.DEBUG, 
-                    format='%(asctime)s.%(msecs)03d %(levelname)s %(message)s', 
-                    datefmt='%m/%d/%Y %H:%M:%S')
-    # Setup socket
-    self._sock   = Sock(sock=socket, log=log)
-    self._db     = SQLiteDB(log=log)
-    log.info("Client: init'd")
-
-
+class Client_t(Prot):
+  
   #
-  # Thread startup
+  # Initialise
   #
-  def start(self):
-    log.info("Client: verify new conn")
-    if self._verify():
-      log.info("Client: new conn verified OK")
-      
-      # open local db
-      log.info("Client: connect to local DB")
-      if not self._db.open():
-        log.error("Client: failed to open db")
-        self._stop()
-        return
- 
-      log.info("Client: connected to local DB")
-      log.info("Client: get DB csum")
-      self._db.csum()
-      log.info("Client: DB csum: %s" % self._db.csum())
-            
-    else:
-      log.info("Client: Failed to verify new conn!")
-      self._stop()
+  def __init__(self, sock, name=None, log=None):
+    Prot.__init__(self, 'srv', sock=sock, name=name, log=log, cred=CLIENTS)
     
-
   #
   # Stop this thread
   #
@@ -98,43 +67,6 @@ class Client_t(threading.Thread):
     
     log.info("Client: ran")
   
-   
-  #
-  # Verify new client connection is allowed
-  #
-  def _verify(self):
-    if self._sock:
-      idstr = self._sock.recv()
-      # can't continue without the id string
-      if not idstr: return False
-
-      log.info("Client - id: %s, len: %d" % (idstr, len(idstr))) 
-      
-      # sanatise and extract data
-      p = re.compile('id:(\d),(\w{16})') 
-      m = p.search(idstr)
-      if m:
-        msgid = int(m.group(1))
-        msgpw = str(m.group(2))
-        for client in CLIENTS:
-          # Verify from 'id' : 'password' list
-          for id, pw in client.iteritems():
-            id = int(id)
-            pw = str(pw)
-            #log.info("CLIENTS: id: %d, p: %s" % (id, pw))
-            #log.info("MESSAGE: id: %d, p: %s" % (msgid, msgpw))
-            if msgid == id and msgpw == pw:
-              log.info("Client - connection Verified ok")
-              return True
-            if msgid != id or msgpw != pw: 
-              log.warning("Client - connection failed verification!")
-              return False
-      else:
-        # Not valid, reject
-        log.warning("Client - bad idstr [%s] from %s" % (msg, sock.getpeername()))
-        return False
-      
-
 
 #############################################
 # Handle client connections and manage threads 
@@ -154,8 +86,9 @@ class DataRXd(Daemon):
     
     # Setup logging
     log.basicConfig(filename=LOGFILE,level=log.DEBUG, 
-                    format='%(asctime)s.%(msecs)03d %(levelname)s %(message)s', 
-                    datefmt='%m/%d/%Y %H:%M:%S')
+                    format='%(asctime)s.%(msecs)03d '\
+                           '%(levelname)s %(message)s', 
+                           datefmt='%m/%d/%y %H:%M:%S')
 
   #
   # Start
@@ -181,11 +114,13 @@ class DataRXd(Daemon):
   #
   def _stop(self):
     log.info("srv - Stopping")
+    # TODO: make threads stop neatly
+    '''
     for t, port in self._client_t.iteritems():
-      log.info("srv - joining thread %s" % port)
-      t.join()
+      log.info("srv - joining thread %s" % (t))
+      if port._started: port.join(1)
       log.info("srv - joined thread %s" % port)
-      
+    '''  
     if self._sock is not None:
       self._sock.close()
       log.info("srv - Closed listening socket")
@@ -207,12 +142,16 @@ class DataRXd(Daemon):
     port = address[1]
     log.info("srv - Got new conn from %s %s" % (address[0], port))
     clientsocket.setblocking(0)
-    # Start a client thread
-    t = Client_t(clientsocket, str(port))
+    # Start a new connection thread
+    t = Client_t(clientsocket, port, log=log)
     t.start()
     self._client_t[str(port)] = t
     log.info("srv - client thread started")
 
+   
+    log.info("srv - Exiting")
+    self.stop()
+    sys.exit(0)
 
 #
 # Process entry point
