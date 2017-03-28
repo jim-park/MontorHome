@@ -44,19 +44,30 @@ class Prot(threading.Thread):
     log.info(DT+"verify connection")
     if self._verify():
       log.info(DT+"connection verified ok")
-      ''' 
+       
       # open local db
       log.info(DT+"connect to local DB")
       if not self._db.open():
         log.error(DT+"failed to open db")
         self._stop()
         return
- 
       log.info(DT+"connected to local DB")
+      # Calculate csum
       log.info(DT+"get DB csum")
-      self._db.csum()
-      log.info(DT+"DB csum: %s" % self._db.csum())
-      '''  
+      csummsg = self._db.csummsg()
+      log.info(DT+"local DB csum: %s" % csummsg)
+      if self._type == 'srv':
+        # Transmit it to client
+        self._sock.send(csummsg)
+      elif self._type == 'rem':
+        # Wait to rcv srv csum
+        srv_csum = self._sock.recv()
+        # Compare csums
+        log.info(DT+"srv csum: %s" % srv_csum)
+        # Begin sync if they don't match
+
+      else:
+        log.error("should never happen")
  
     else:
       log.info(DT+"Failed to verify new conn!")

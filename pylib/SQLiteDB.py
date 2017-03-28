@@ -3,6 +3,8 @@
 import sqlite3
 import sys
 import logging as log
+import json
+import md5
 
 # Constants
 DT        = 'db '
@@ -11,8 +13,8 @@ DBPATH    = '/home/jim/Montorhome/mh_project/app_srv/db/data.db'
 INSERT    = "INSERT INTO sensor_readings" \
             "(type, value, name, date, raw_value)" \
             "values ('%s', %d, '%s', '%s', %d);"
-SELECTALL = "select * from %s"
-TABLES    = [ 'sensors', 'sensor_readings' ]
+SELECTALL = "SELECT * FROM %s ORDER BY %s"
+TABLES    = [ 'sensor', 'data' ]
 
 #
 # Database functions
@@ -58,22 +60,59 @@ class SQLiteDB():
   #
   # Generate checksum for a table
   #
-  def csum(self, tbls=None):
-    
-    # TODO: Undo this hack  
-    sql = SELECTALL % TABLES[1]
+  def _tblcsum(self, tbl=None):
+    ret = False
+    if not tbl:
+      log.error(DT+"can't do tblcsum, no tbl specified") 
+      return ret
+    #sql = SELECTALL + 'ORDER BY %s_id' % (tbl, tbl)
+    sql = 'SELECT * from %s ORDER BY %s_id' % (tbl, tbl)
     try :
-      log.debug(DT+'execute [%s]' % sql)
       cur = self._db.cursor()
+      log.debug(DT+'execute [%s]' % sql)
       cur.execute(sql)
-      log.debug(DT+'commit')
-      self._db.commit()
-      log.debug(DT+'fetchone')
-      cur.fetchone()[0]
+      # TODO, limit select, not selectall.
+      data = cur.fetchall()
+      # log.debug(DT+'fetched: %s' % data)
+      ret = self._csum(str(data)).hexdigest()
     except Exception, e:
       log.error(DT+'Failed to get db csum [e=%s]' % e)
        
+    return  ret
+  #
+  # Generate Json formtted table csum message
+  #
+  def csummsg(self, table=None):
+    # { "csum": { "sensors" : "0xcsum", "sensor_data" : "0xcsum"} }
+    ret      = False
+    tblcsums = []
+    JCSUM    = '{"csum":{%s}}'
+    flg      = False
+    jstr     = ''
+    if not table:
+      # If not tbl specified, do them all
+      # TODO: Undo this hack
+      table = TABLES
+    
+    for t in table:
+      if flg: jstr = jstr + ','
+      csum = self._tblcsum(t)
+      tblcsums.append(csum)
+      jstr = jstr + '"%s":"%s"' % (t, csum)
+      # log.info(DT+"csum: %s: %s" % (t, csum))
+      flg = True
+    if jstr != '': ret = JCSUM % jstr
+    log.info(DT+"jstr: %s" % (ret))
+    return ret
 
+  #
+  # Calculate simple csum
+  #
+  def _csum(self, data=None):
+    ret = False
+    if data:
+      ret = md5.md5(str(data))
+    return ret
   #
   # Add reading (row) to Database table 'sensor_readings'
   #  

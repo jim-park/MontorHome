@@ -31,7 +31,7 @@ class Sock():
   # Send data 
   #
   def send(self, data):
-    if self._sock and len(data) > 0:
+    if self._sock and data and len(data) > 0:
       try:
         self._sock.send("%s\r" % data)
         log.info(self.DT+"tx %d bytes: %s" % (len(data), data))
