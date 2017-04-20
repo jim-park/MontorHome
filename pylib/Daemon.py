@@ -72,9 +72,9 @@ class Daemon:
     # Check for a pidfile to see if the daemon already runs
     try:
       pf = file(self.pidfile,'r')
-      pid = int(pf.read().strip())
+      pid = pf.read().strip()
       pf.close()
-    except IOError:
+    except IOError, ValueError:
       pid = None
 
     if pid:
@@ -148,7 +148,7 @@ class Daemon:
       while self._running:
         if hasattr(self, "_run"):
           self._run()
-          time.sleep(0.001)
+          time.sleep(0.01)
 
  
   def __str__(self):
