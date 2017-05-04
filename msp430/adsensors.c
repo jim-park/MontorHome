@@ -25,6 +25,8 @@
 #define UART_TBIT_DIV_2     (1000000 / (9600 * 2))
 #define UART_TBIT           (1000000 / 9600)
 
+// Global defs
+#define SAMP_NUM 8
 //------------------------------------------------------------------------------
 // Global variables used for full-duplex UART communication
 //------------------------------------------------------------------------------
@@ -52,15 +54,16 @@ void TimerA_UART_print(char *string);
 int main(void)
 {
   // For sample output
-  unsigned int sample = 0;
-
+  unsigned int sample = 0, k = 0, i=0;
+  unsigned int samp_win[SAMP_NUM] = { 0 };
   // Initalise stuff
   Clock_init();                           // Start clocks
   GPIO_init();                            // Setup GPIO
   ADC10_init();                           // Setup ADC1
   TimerA_UART_init();                     // Start Timer_A UART
+  memset(samp_win, 0, sizeof(int)*SAMP_NUM);
 
-  __enable_interrupt();                   // ??? What, which one?
+  __enable_interrupt();                   //  Enable interrupts
 
   // infinite loop
   for (;;)
@@ -71,6 +74,18 @@ int main(void)
     // Sample battery with ADC10
     acquire_sample(&sample);
     flash_p16();
+
+    if (i < SAMP_NUM) {
+      samp_win[i] = sample;
+      i++;
+    } else if ( i > SAMP_NUM ) {
+      i = SAMP_NUM;
+    } else {
+      for ( k=1; k<SAMP_NUM; k++) {
+        samp_win[k] = samp_win[k-1];
+      }
+      samp_win[0] = sample;
+    }
 
     // Send sample over UART
     send_sample(&sample);
@@ -93,17 +108,13 @@ void flash_p16(void)
 //------------------------------------------------------------------------------
 void send_sample(unsigned int * sample)
 {
-  /* {"id":"0","sensor":{"0":["a","582"]}} */
-
-  /* This is the format to use, much better */
-  /* {"id":"0","sensors":[{"id":"0", "type":"a", "val":"582"}, {"id":"1", "type":"d", "val":"542"}]} */
-  char sstring[4] = "";
-  const char * out_str_start = "{\"id\":\"0\",\"sensors\":"\
-                               "[{\"id\":\"0\",\"type\":\"a\",\"val\":\"";
+  /* This json message format is used, eg.. */
+  /* {"sensor":[{"id":"0", "val":"582"}, {"id":"1", "val":"542"}]} */
+  char sstring[4] = "";  //buf to hold sample as str
+  const char * out_str_start = "{\"sensor\":[{\"id\":\"0\",\"val\":\"";
   const char * out_str_end = "\"}]} ";
-  char tmpstr[64]  = "";
+  char tmpstr[42]  = "";
   unsigned int chksum = 0;
-
   utoa(*sample, sstring, 10);
   strcat(tmpstr, out_str_start);
   strcat(tmpstr, sstring);
@@ -136,8 +147,9 @@ void acquire_sample(unsigned int * sample)
 {
   unsigned int cum_sample_tot = 0;
   unsigned short int i = 0;
+  const unsigned short int num_samples = 8;
 
-  for (i=0; i<64; i++) {
+  for (i=0; i<num_samples; i++) {
     ADC10CTL0 |= ENC + ADC10SC;				   // Sampling and conversion start
     while (ADC10CTL1 & ADC10BUSY);       // ADC10BUSY?
     cum_sample_tot += 0x3FF & ADC10MEM;

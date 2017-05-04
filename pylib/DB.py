@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 
 # Imports
-import os, sys, md5
+import os, sys, md5, time
 
 from twisted.enterprise import adbapi
 from twisted.internet import reactor, defer
-
 
 #
 # DB class
 #
 class DB:
-  SELECTALL         = "SELECT * FROM %s"
-  SELALLORDBYID  = "SELECT * FROM %s ORDER BY %s_id"
+  SELECTALL     = "SELECT * FROM %s"
+  SELALLORDBYID = "SELECT * FROM %s ORDER BY %s_id"
+  INSERTDATA    = "INSERT INTO data (sensor_id, data, raw_data, date) "\
+                  "values (%d, %d, %d, %d)"
  
   # Initialisation 
   def __init__(self, dbpath, peer, logfileh=None):
@@ -30,6 +31,11 @@ class DB:
   def selectall(self, tbl):
     #sql = "SELECT * FROM %s ORDER BY %s_id" % (tbl, tbl)
     sql = self.SELALLORDBYID % (tbl, tbl)
+    return self._execute(sql)
+
+  # Insert data into 'data' table
+  def insertdata(self, sensor_id, data, raw_data, date):
+    sql = self.INSERTDATA % ( sensor_id, data, raw_data, date)
     return self._execute(sql)
   
   # Make an md5 checksum from a selectall 
@@ -143,6 +149,8 @@ class DB:
     if self._peer == 'srv':
       tag = 'clntdb'
     if msg:
-      self._lfh.write("%s %s\n" % (tag, msg))
+      tm_str = time.strftime('%y/%m/%d %H:%M:%S')
+      log_str = "%s %s - %s\n" % (tm_str, tag, msg)
+      self._lfh.write(log_str)
       self._lfh.flush()
 

@@ -16,6 +16,8 @@ from Peer import Peer, Msg
 # Globals
 LOGFILE = './log/client.log'
 DT = "clnt"
+APPSRV = 'ec2-34-223-254-49.us-west-2.compute.amazonaws.com'
+#APPSRV = 'comp1'
 
 #
 # Log stuff
@@ -110,7 +112,7 @@ class Event(Factory):
 if __name__ == '__main__':
   clnt_fct = Factory()
   # Connect to app srv
-  reactor.connectTCP('comp1', 8007, clnt_fct)
+  reactor.connectTCP(APPSRV, 8007, clnt_fct)
   
   # Start local event listener
   ev = TCP4ServerEndpoint(reactor, 8001)
