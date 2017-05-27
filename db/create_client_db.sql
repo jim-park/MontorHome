@@ -19,6 +19,7 @@ CREATE TABLE event (
     "tbl" TEXT NOT NULL,
     "rowid" INTEGER NOT NULL
 );
+/*
 CREATE TRIGGER "onInsert"
    AFTER 
    INSERT
@@ -28,4 +29,5 @@ BEGIN
     INSERT INTO event (tbl, rowid) 
         VALUES ("data", (SELECT MAX(data.data_id) from data));
 END;
+*/
 COMMIT;

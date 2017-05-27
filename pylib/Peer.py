@@ -40,35 +40,42 @@ class Msg:
 # Main class for dealing with a peer connection
 ##########################################################
 class Peer(LineReceiver):
-  INIT = 'init'
-  CSUM = 'csum'
-  msg_types = [INIT, CSUM]
+  INIT      = 'init'
+  CSUM      = 'csum'
+  ADD       = 'add'
+  msg_types = [INIT, CSUM, ADD]
 
-  def __init__(self, factory, typ='clnt', logfile=None):
+  def __init__(self, factory, typ='clnt', db= None, logfile=None):
     self.factory = factory
     self.fp      = logfile
     self._typ    = typ
     self._id     = 'X'
     self._verifd = False 
     self.dbp     = "./db/data.db"
-    self._db     = DB(self.dbp, self._typ, self.fp)
-    #self.dbpool  = adbapi.ConnectionPool("sqlite3", self.dbp) 
+    if db == None:
+      self._db     = DB(self.dbp, self._typ, self.fp)
+    else: 
+      self._db   = db
   
   # 
   # Deal with a received line 
   #
   def lineReceived(self, line):
+    msg = False
     
     self.log("rx: %s len %d" % (line, len(line)))
     msg = self._jsonDecode(line)
 
-    # Check msg allowed
+    # Check msg decoded ok
+    if not msg: return
+
+    # Check msg type allowed
     if msg.type not in self.msg_types:
       self.log('Error: bad msg type') 
       self.log('Aborting')
       return
 
-    # Check client is verified (or is about to)
+    # Check client is verified (or is about to be)
     if not self._verifd and msg.type != self.INIT:
       self.log('Error: client not verfied') 
       self.log('Aborting')
@@ -77,6 +84,7 @@ class Peer(LineReceiver):
     # Deal with msg types 
     if msg.type == self.INIT: self._verify(msg)
     if msg.type == self.CSUM: self._rxcsum(msg)
+    if msg.type == self.ADD:  self._rxadd(msg)
 
  
   #
@@ -87,7 +95,7 @@ class Peer(LineReceiver):
       self.log("connection made")
       # TODO: Fix this, horrible
       data = {"id":ID,"pw":PW}
-      self._tx_json(self.INIT, data) 
+      self._txjson(self.INIT, data)
  
   #
   # Decode rx'd json string into Msg object format.
@@ -111,13 +119,12 @@ class Peer(LineReceiver):
     return ret
 
   #
-  # Receive db csum
+  # Receive db csum message
   #
   @inlineCallbacks
   def _rxcsum(self, msg):
     cb_res = []
 
-    
     for tbl in msg.data:
       self.log('tbl: %s, rx csum: %s' % (tbl, msg.data[tbl]))
       d = defer.Deferred()
@@ -133,6 +140,50 @@ class Peer(LineReceiver):
     self.log('All DB tables upto date')
 
   #
+  # Receive add message
+  #
+  def _rxadd(self, msg):
+    for tbl in msg.data:
+      for row in msg.data[tbl]:
+        self.log('add: %s : %s' % (tbl, row))
+        if tbl == 'data':
+          data_id = row[0]
+          sens_id = row[1]
+          value   = row[2]
+          raw_val = row[3]
+          date    = row[4]
+          self._db.insertdata(sens_id, value, raw_val, date, data_id)
+        elif tbl == 'sensor':
+          # TODO: Finish this
+          self._db.insertsensor(None, None, None)
+        else:
+          self.log("Error, should never happen, bad insert tbl")
+
+  #
+  # Send an 'add' message to the other end
+  #
+  def txadd(self, data):
+    self.log("Peer.txadd")
+    return self._txadd(data)
+
+  #
+  # Send add message to the other side
+  #
+  def _txadd(self, data):
+    self.log("Peer._txadd")
+    msg = Msg(type='add')
+    jsondata = '{"id":"%d","sens_id":"%d","value":"%d",'\
+               '"raw_value":"%d","data":"%d"}' %\
+               (data[0], data[1], data[2], data[3], data[4])
+    #data_id = row[0]
+    #sens_id = row[1]
+    #value   = row[2]
+    #raw_val = row[3]
+    #date    = row[4]
+    self._txjson('add', jsondata)
+
+
+  #
   # expects a list of tbl names
   #
   def txcsum(self, tbls=None):
@@ -144,7 +195,7 @@ class Peer(LineReceiver):
       for tbl_csum in data:
         csums.update(tbl_csum)
       # Send csum(s)
-      self._tx_json(self.CSUM, csums)
+      self._txjson(self.CSUM, csums)
  
     # Funtion starts executing here
  
@@ -164,15 +215,20 @@ class Peer(LineReceiver):
     callbacks = defer.gatherResults(cb_refs)
     callbacks.addCallback(sendcsum)
 
-  #
-  # Deal with events signaled from the
-  # Event listner. Clients Only so far.
-  #
-  def doevent(self):
-    self.log("getting new event(s)")
-    self.sendLine("getting event, hold on...")
-    self._db.getevntrows()
 
+  #
+  # Set event in the 'event' table
+  #
+  def setEvent(self, tbl, rowid):
+    self.log("inserting event, tbl: %s, row: %d" % (tbl, rowid))
+    self._db.insertEvent(tbl, rowid)
+
+  #
+  # Get events from the 'event' table
+  #
+  def getEvent(self):
+    self.log("getting event")
+    newrows = yield self._db.getevntrows()
 
   #
   # Divert client or srv verification as necessary
@@ -206,7 +262,7 @@ class Peer(LineReceiver):
       self._verifd = True
       self.log("client id %d verified ok" % self._id)
       # Send positive response to client
-      self._tx_json(self.INIT, {'verify':True})
+      self._txjson(self.INIT, {'verify':True})
     else:
       self.log("client failed verification, disconnected")
       # Send negative response to client
@@ -232,9 +288,10 @@ class Peer(LineReceiver):
   # Send a json formatted string to the other end.
   #
   # expects; msg type, dict(msg data)
-  def _tx_json(self, msg_type, data):
+  def _txjson(self, msg_type, data):
     json_str = json.dumps([msg_type, data])
     self.log('tx: %s' % json_str)
+    # TODO: Send a simple csum
     self.sendLine(json_str)
     
     

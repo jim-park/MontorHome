@@ -3,7 +3,7 @@
 import time, sys, json
 from twisted.internet import reactor, task
 from twisted.internet.protocol import Protocol, Factory
-from twisted.internet.protocol import ReconnectingClientFactory
+from twisted.internet.protocol import ReconnectingClientFactory as RCFactory
 from twisted.internet.serialport import SerialPort, BaseSerialPort
 from twisted.protocols.basic import LineReceiver
 
@@ -13,7 +13,7 @@ LOGFILE    = './log/'+DT+'.log'
 
 SER_PATHS  = ['/dev/ttyUSB%d', '/dev/ttyACM%d']
 BAUDRATE   = 9600 
-REQ_PERIOD = 60         # request period (secs)
+REQ_PERIOD = 15         # request period (secs)
 
 queue = []
 putter = None
@@ -33,23 +33,58 @@ def log(msg):
   f.close()
 
 #
+# Check simple csum against data
+#
+def chk_csum(data, csum):
+  ret = False
+  data_csum = simpl_csum(data)
+  if data_csum == csum:
+    ret = True
+  return ret
+
+#
+# Calculate simple csum
+#
+def simpl_csum(data=None):
+  ret = False
+  if not data: return ret
+  ret = 0;
+  for c in data:
+    ret += ord(c)
+  return ret & 0xFF
+
+#
 # Protocol (but actually Factory) for the serial comms
 #
 class SerialFcty(LineReceiver):
 
-  #def __init__(self):
-  #  # TODO: this is horrid. 
-  #  self.fp     = open(LOGFILE, 'a')
-  #  log("SerialFcty init'd")
-
   # Put rx'd data in the Q
   def lineReceived(self, line):
-    log("rx: %s" % line)
-    queue.append(line)
+    log("ser rx: %s" % line)
+
+    # Extract and check simple csum
+    rxcsum  = int(line.split(' ')[1], base=16)
+    jsonstr = line.split(' ')[0] + ' '
+    if not chk_csum(jsonstr, rxcsum):
+      log("Error: simple csum failed. Data ignored")
+      return
+
+    # Put timestamp on data
+    jsonobj = json.loads(jsonstr)
+    jsonobj['sensor'][0]['time'] = "%d" % int(time.time())
+    jsontstr = json.dumps(jsonobj, separators=(',', ':'))
+
+    # Append simple csum
+    csum   = simpl_csum(jsontstr)
+    txdata = jsontstr + ' %02X' % csum
+
+    # Add to the queue for sending
+    queue.append(txdata)
     if putter is not None:
       putter.sendData()
     else:
-      log('tcp client not available, data buffered')
+      log('local client not available, data buffered, len: %d' % len(queue))
+      #log('data: %s' % txdata)
 
 #
 # TCP Client Protocol 
@@ -61,39 +96,44 @@ class txData(Protocol):
     putter = self
 
   def connectionMade(self):
-    log("Connected to local client")
+    log("connected to local client")
 
   def connectionLost(self, reason):
-    log("Disconnected from local client")
+    log("disconnected from local client")
     global putter
     putter = None
 
   def sendData(self):
     while len(queue) > 0:
       data = queue.pop()
-      log("tx: %s" % data)
+      log("tcp tx: %s" % data)
       self.transport.write(data+'\n')
 
 
 #
-# TCP Client Factory
+# TCP Reconnecting Client Factory
+# Connects to local client
 #
-class txDataFactory(ReconnectingClientFactory):
-  initialDelay = 10
-  factor       = 1.5
-  maxDelay     = 600
+class txDataFactory(RCFactory):
+  maxDelay = 1800  # 30 min
 
   def buildProtocol(self, addr):
+    log("connected to local client %s" % addr)
     self.resetDelay()
     return txData()
 
+  def startedConnecting(self, connector):
+    log("attempting to connect to local client")
+
   def clientConnectionFailed(self, connector, reason):
-    log('TCP connection to client failed e=%s' % reason)
-    self.retry(connector)
+    log('tcp connection to local client failed')
+    #log('e=%s' % reason)
+    RCFactory.clientConnectionFailed(self, connector, reason)
 
   def clientConnectionLost(self, connector, reason):
-    log('TCP connection to client lost e=%s' % reason)
-    self.retry(connector)
+    log('tcp connection to local client lost')
+    #log('e=%s' % reason)
+    RCFactory.clientConnectionLost(self, connector, reason)
 
 
 #
@@ -106,7 +146,7 @@ def main():
   # send data to sensor (to elicit a reading response)
   # TODO: This should be somewhere else, surely!
   def reqSerData():
-    log("request serial data")
+    log("requesting serial data")
     f.writeSomeData('s')
   
   # Loop through ttyACMx and ttyUSBx devices and try to open
@@ -118,11 +158,11 @@ def main():
         ser_path = p % i
         try:
           f = SerialPort(SerialFcty(), ser_path, reactor, BAUDRATE)
-          log('Sensor on ser port %s connected ok' % ser_path)
+          log('sensor on ser port %s connected ok' % ser_path)
           ser_conn = True
           break
         except Exception, e:
-          log('Ser port %s not available' % ser_path)
+          log('serial port %s not available' % ser_path)
       if ser_conn: break
     if ser_conn: break
     time.sleep(10)
