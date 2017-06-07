@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 # Imports
-import os, sys, md5, time
+import os, sys, md5, time, sqlite3, thread
+from threading import RLock
 
 from twisted.internet.defer import inlineCallbacks, returnValue
-from twisted.internet import reactor, defer
+from twisted.internet import reactor, defer, threads
 from twisted.enterprise import adbapi
+from twisted.python import log, threadpool
 
 #
 # DB class
@@ -15,7 +17,7 @@ class DB:
   SELALLORDBYID = "SELECT * FROM %s ORDER BY %s_id"
   INSERTDATA    = "INSERT INTO data (sensor_id, data, raw_data, date) "\
                   "values (%d, %0.2f, %d, %d)"
-  INSERTDATAID  = "INSERT INTO data (data_id, sensor_id, data,"\
+  INSERTDATAID  = "INSERT INTO data (data_id, sensor_id, data, "\
                   "raw_data, date) values (%d, %d, %0.2f, %d, %d)"
   INSERTEVENT   = "INSERT INTO event (tbl, rowid) values ('%s', %d)"
   DELETEEVENT   = "DELETE FROM event where rowid=%d and tbl=%s"
@@ -23,24 +25,39 @@ class DB:
   #
   # Initialise
   #
-  def __init__(self, dbpath, peer, logfileh=None):
-    self._lfh    = logfileh
-    self._peer   = peer
+  def __init__(self, dbpath, peer_type):
+    self._peer   = peer_type
     self._dbpath = dbpath
-    self._dbpool = adbapi.ConnectionPool("sqlite3", self._dbpath, cp_max=1)
+    self._dbpool = adbapi.ConnectionPool("sqlite3", self._dbpath)
+    self._dblock = RLock()
+    
+    self._dbpool.noisy = False #True - for noisy debug
 
   #
-  # Execute a given sql string
+  # Execute deferred query in separate thread
+  #
+  def execute(self, sql):
+    return threads.deferToThreadPool(reactor, self._dbpool.threadpool, self._execute, sql)
+
+  #
+  # Execute a given sql string (thread safe)
   #
   def _execute(self, sql):
     ret = None
-    self.log('exe SQL: %s' % sql)
+    self._dblock.acquire()
+    log.msg('exe SQL: %s' % sql)
     try:
-      ret = self._dbpool.runQuery(sql)
-    except Sqlite3.OperationalError, e:
-      self.log("Error - Op Err, e: %s" % e)
+      conn = self._dbpool.connect()
+      cur  = conn.cursor()
+      cur.execute(sql)
+      conn.commit() 
+      ret = cur.fetchall()
+    except sqlite3.OperationalError, e:
+      log.err("Error - Op Err, e: %s" % e)
     except Exception, e:
-      self.log('Error executing sql. e:%s' % e)
+      log.err('Error executing sql. e:%s' % e)
+    self._dbpool.disconnect(conn)
+    self._dblock.release()
     return ret
 
   #
@@ -48,7 +65,7 @@ class DB:
   #
   def selectall(self, tbl):
     sql = self.SELALLORDBYID % (tbl, tbl)
-    return self._execute(sql)
+    return self.execute(sql)
 
   #
   # TODO: finish this
@@ -58,35 +75,77 @@ class DB:
     pass
 
   #
-  # Insert data into 'data' table
+  # Execute deferred INSERT in separate thread, and get insert id
   #
-  def insertData(self, sensor_id, data, raw_data, date, data_id=None):
-    if self._peer == 'clnt' and data_id == None:
-      sql = self.INSERTDATA % ( sensor_id, data, raw_data, date)
-    else:
-      sql = self.INSERTDATAID % ( data_id, sensor_id, data, raw_data, date)
-    return self._execute(sql)
+  def insertDataGetRowId(self, sdata):
+    return threads.deferToThreadPool(reactor, self._dbpool.threadpool, 
+                                     self._insertDataGetRowId, sdata)
 
   #
-  # Insert into 'data' table and return data_id
+  # Insert data into 'data' table, get rowid (data_id),
+  # add 'data_id' key and val to sdata
   #
-  def _insertdatagetrowid(self, txn, sdata):
+  def _insertDataGetRowId(self, sdata):
     if self._peer != 'clnt': return None
-    # insert the data
+    ret = True
     sql = self.INSERTDATA %\
          (sdata['id'], sdata['val'], sdata['raw_val'], sdata['time'])
-    self.log('exe SQL: %s' % sql)
-    txn.execute(sql)
-    # get last row id (data_id)
-    sdata['data_id'] = txn.lastrowid
+    # Get lock and connection
+    self._dblock.acquire()
+    conn = self._dbpool.connect()
+    
+    try:
+      cur = conn.cursor()
+      log.msg('exe SQL: %s' % sql)
+      cur.execute(sql) 
+      conn.commit()
+      sdata['data_id'] = cur.lastrowid
+    except sqlite3.OperationalError, e:
+      log.err("Error - Op Err, e: %s" % e)
+    except Exception, e:
+      log.err('Error executing sql. e:%s' % e)
+
+    # Release lock and connection
+    self._dbpool.disconnect(conn)
+    self._dblock.release()
+
     return sdata
 
+
   #
-  # Wrapper for _insertdatagetrowid()
-  # (to get hold of txn object??)
+  # Execute deferred INSERT in separate thread
   #
-  def insertGetRowId(self, sdata):
-    return self._dbpool.runInteraction(self._insertdatagetrowid, sdata)
+  def insertDataByRowId(self, sdata):
+    return threads.deferToThreadPool(reactor, self._dbpool.threadpool, 
+                                     self._insertDataByRowId, sdata)
+    
+  #
+  # insert and don't return rowid
+  #
+  def _insertDataByRowId(self, sdata):
+    if self._peer != 'srv': return None
+    ret = True
+    sql = self.INSERTDATAID %\
+         (sdata['data_id'], sdata['id'], sdata['val'], sdata['raw_val'], sdata['time'])
+    # Get lock and connection
+    self._dblock.acquire()
+    conn = self._dbpool.connect()
+    
+    try:
+      cur = conn.cursor()
+      log.msg('exe SQL: %s' % sql)
+      cur.execute(sql) 
+      conn.commit()
+    except sqlite3.OperationalError, e:
+      log.err("Error - Op Err, e: %s" % e)
+    except Exception, e:
+      log.err('Error executing sql. e:%s' % e)
+
+    # Release lock and connection
+    self._dbpool.disconnect(conn)
+    self._dblock.release()
+
+    return sdata
 
   #
   # Insert into 'event' table
@@ -112,10 +171,10 @@ class DB:
     def cmp_csums(data, tbl, rcsum):
       ret = {tbl:False}
       if data[tbl] == rcsum:
-        self.log("tbl %s csum ok" % tbl)
+        log.msg("tbl %s csum ok" % tbl)
         ret[tbl] = True
       else:
-        self.log("tbl %s csum doesn't match remote" % tbl)
+        log.msg("tbl %s csum doesn't match remote" % tbl)
       return ret
 
     d = defer.Deferred()
@@ -150,7 +209,7 @@ class DB:
         rowid = int(r[2])
         tbl_rowids[tbl].append(rowid)
 
-      self.log("tbl_rowid %s" % tbl_rowids)
+      log.msg("tbl_rowid %s" % tbl_rowids)
 
       return tbl_rowids
 
@@ -159,7 +218,7 @@ class DB:
       sql = "SELECT * FROM %s WHERE %s_id = %d"\
             % (tbl, tbl, rowid)
       d = defer.Deferred()
-      d = self._execute(sql)
+      d = self.execute(sql)
      
       return d
 
@@ -170,7 +229,7 @@ class DB:
     @inlineCallbacks
     def getevrowsbyid(tbl_rowids):
       tbl_data = {}
-      self.log("data: %s" % tbl_rowids)
+      log.msg("data: %s" % tbl_rowids)
 
       # initialise tbl_data dict of lists
       for tbl in tbl_rowids: tbl_data[tbl] = []
@@ -180,7 +239,7 @@ class DB:
           #self.log("tbl: %s, rowid: %s" % (tbl, rowid))
           d = yield getrowbyid(tbl, rowid)
           tbl_data[tbl].append(d[0])
-      self.log("tbl_data: %s" % tbl_data)
+      log.msg("tbl_data: %s" % tbl_data)
 
       returnValue(tbl_data)
 
@@ -191,19 +250,4 @@ class DB:
     d.addCallback(getevrowsbyid)
 
     return d
-
-
-
-  # 
-  # Log stuff to file
-  #
-  def log(self, msg):
-    tag = self._peer+'db'
-    if self._peer == 'srv':
-      tag = 'clntdb'
-    if msg:
-      tm_str = time.strftime('%y/%m/%d %H:%M:%S')
-      log_str = "%s %s - %s\n" % (tm_str, tag, msg)
-      self._lfh.write(log_str)
-      self._lfh.flush()
 

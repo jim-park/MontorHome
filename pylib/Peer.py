@@ -2,13 +2,14 @@
 
 
 # Imports
-import sys, os, re, md5, time, json
+import sys, os, re, md5, time, json, thread
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.protocol import Protocol, Factory
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor, defer
 from twisted.protocols.basic import LineReceiver
 from twisted.enterprise import adbapi
+from twisted.python import log
 # Custom imports
 from DB import DB
 
@@ -45,25 +46,27 @@ class Peer(LineReceiver):
   ADD       = 'add'
   msg_types = [INIT, CSUM, ADD]
 
-  def __init__(self, factory, typ='clnt', db= None, logfile=None):
+  def __init__(self, factory, typ='clnt', db=None, logfile=None):
     self.factory = factory
-    self.fp      = logfile
+    self.lfh     = None
     self._typ    = typ
     self._id     = 'X'
     self._verifd = False 
     self.dbp     = "./db/data.db"
-    if db == None:
-      self._db     = DB(self.dbp, self._typ, self.fp)
-    else: 
+    if db:
       self._db   = db
-  
+    else:
+      self._db   = DB(self.dbp, self._typ, self.lfh)
+
+    self.factory.protocol = self
+
   # 
   # Deal with a received line 
   #
   def lineReceived(self, line):
     msg = False
     
-    self.log("rx: %s len %d" % (line, len(line)))
+    log.msg("rx: %s len %d" % (line, len(line)), system='peer')
     msg = self._jsonDecode(line)
 
     # Check msg decoded ok
@@ -71,14 +74,14 @@ class Peer(LineReceiver):
 
     # Check msg type allowed
     if msg.type not in self.msg_types:
-      self.log('Error: bad msg type') 
-      self.log('Aborting')
+      log.msg('Error: bad msg type', system='peer') 
+      log.msg('Aborting', system='peer')
       return
 
     # Check client is verified (or is about to be)
     if not self._verifd and msg.type != self.INIT:
-      self.log('Error: client not verfied') 
-      self.log('Aborting')
+      log.msg('Error: client not verfied', system='peer') 
+      log.msg('Aborting', system='peer')
       return
      
     # Deal with msg types 
@@ -92,7 +95,7 @@ class Peer(LineReceiver):
   #     
   def connectionMade(self):
     if self._typ == 'clnt':
-      self.log("connection made")
+      log.msg("connection made", system='peer')
       # TODO: Fix this, horrible
       data = {"id":ID,"pw":PW}
       self._txjson(self.INIT, data)
@@ -109,12 +112,12 @@ class Peer(LineReceiver):
       obj      = json.loads(line)
       msg.type = obj[0]
       msg.data = obj[1]
-      self.log('json msg type: %s' % msg.type)
+      log.msg('json msg type: %s' % msg.type, system='peer')
       for key, val in msg.data.iteritems():
-        self.log('json msg data: %s : %s' % (key, val))
+        log.msg('json msg data: %s : %s' % (key, val), system='peer')
       ret = msg
     except Exception, e:
-      self.log("Error: can't decode msg, e=%s" % e)
+      log.msg("Error: can't decode msg, e=%s" % e, system='peer')
 
     return ret
 
@@ -126,7 +129,7 @@ class Peer(LineReceiver):
     cb_res = []
 
     for tbl in msg.data:
-      self.log('tbl: %s, rx csum: %s' % (tbl, msg.data[tbl]))
+      log.msg('tbl: %s, rx csum: %s' % (tbl, msg.data[tbl]), system='peer')
       d = defer.Deferred()
       d = yield self._db.cmptblcsum(tbl, msg.data[tbl])
       cb_res.append(d)
@@ -134,52 +137,40 @@ class Peer(LineReceiver):
     for res in cb_res:
       for tbl in res:
         if not res[tbl]:
-          self.log('tbl %s csum error' % tbl)
+          log.msg('tbl %s csum error' % tbl, system='peer')
           # TODO: something about these misaligned tbls
           return
-    self.log('All DB tables upto date')
+    log.msg('All DB tables upto date', system='peer')
 
   #
   # Receive add message
   #
   def _rxadd(self, msg):
     for tbl in msg.data:
-      for row in msg.data[tbl]:
-        self.log('add: %s : %s' % (tbl, row))
-        if tbl == 'data':
-          data_id = row[0]
-          sens_id = row[1]
-          value   = row[2]
-          raw_val = row[3]
-          date    = row[4]
-          self._db.insertdata(sens_id, value, raw_val, date, data_id)
-        elif tbl == 'sensor':
-          # TODO: Finish this
-          self._db.insertsensor(None, None, None)
-        else:
-          self.log("Error, should never happen, bad insert tbl")
+      
+      # Debug output
+      for field in msg.data[tbl]:
+        log.msg('add tbl: %s - %s = %s' % (tbl, field, msg.data[tbl][field]), system='peer')
 
-  #
-  # Send an 'add' message to the other end
-  #
-  def txadd(self, data):
-    self.log("Peer.txadd")
-    return self._txadd(data)
+      if tbl == 'data':
+        data = msg.data[tbl]
+        try:
+          self._db.insertDataByRowId(data)
+        except Exception, e:
+          log.err('didnt insert into tbl data', e)
+      elif tbl == 'sensor':
+        # TODO: Finish this
+        self._db.insertSensorByRowId(None, None, None)
+      else:
+        log.err("Error, should never happen, bad insert tbl", system='peer')
 
   #
   # Send add message to the other side
   #
-  def _txadd(self, data):
-    self.log("Peer._txadd")
-    msg = Msg(type='add')
-    jsondata = '{"id":"%d","sens_id":"%d","value":"%d",'\
-               '"raw_value":"%d","data":"%d"}' %\
-               (data[0], data[1], data[2], data[3], data[4])
-    #data_id = row[0]
-    #sens_id = row[1]
-    #value   = row[2]
-    #raw_val = row[3]
-    #date    = row[4]
+  def txadd(self, data, tbl):
+    jsondata = {}
+    jsondata[tbl] = data
+    log.msg("Peer.txadd, data: %s" % jsondata, system='peer')
     self._txjson('add', jsondata)
 
 
@@ -205,29 +196,35 @@ class Peer(LineReceiver):
     # Setup callbacks from selectall for each table
     cb_refs = []
     for tbl in tbls:
+
       d = defer.Deferred()
       d = self._db.selectall(tbl)
       # when selectall finishes call mkcsum()
       d.addCallback(self._db.mkcsum, tbl)
       cb_refs.append(d)
-
+      '''
+      data = self._db.selectall(tbl)
+      data = self._db.mkcsum(data, tbl)
+    '''
     # Send csums when all selects return
     callbacks = defer.gatherResults(cb_refs)
     callbacks.addCallback(sendcsum)
-
+    '''
+    sendcsum(cb_refs)
+    '''
 
   #
   # Set event in the 'event' table
   #
   def setEvent(self, tbl, rowid):
-    self.log("inserting event, tbl: %s, row: %d" % (tbl, rowid))
+    log.msg("inserting event, tbl: %s, row: %d" % (tbl, rowid), system='peer')
     self._db.insertEvent(tbl, rowid)
 
   #
   # Get events from the 'event' table
   #
   def getEvent(self):
-    self.log("getting event")
+    log.msg("getting event", system='peer')
     newrows = yield self._db.getevntrows()
 
   #
@@ -260,11 +257,11 @@ class Peer(LineReceiver):
     if ret:
       self._id     = clid
       self._verifd = True
-      self.log("client id %d verified ok" % self._id)
+      log.msg("client id %d verified ok" % self._id, system='peer')
       # Send positive response to client
       self._txjson(self.INIT, {'verify':True})
     else:
-      self.log("client failed verification, disconnected")
+      log.msg("client failed verification, disconnected", system='peer')
       # Send negative response to client
       self.transport.loseConnection()
     return ret
@@ -279,8 +276,8 @@ class Peer(LineReceiver):
     # msg.type == init
     # msg.data == {"verify":True}
     if msg.data['verify'] == True:
-      self.log("srv response ok, verified")
-      self.log("sending dbcsum")
+      log.msg("srv response ok, verified", system='peer')
+      log.msg("sending dbcsum", system='peer')
       # TODO Fix this, TABLES orrid
       self.txcsum(tbls=TABLES)
 
@@ -290,7 +287,7 @@ class Peer(LineReceiver):
   # expects; msg type, dict(msg data)
   def _txjson(self, msg_type, data):
     json_str = json.dumps([msg_type, data])
-    self.log('tx: %s' % json_str)
+    log.msg('tx: %s' % json_str)
     # TODO: Send a simple csum
     self.sendLine(json_str)
     
@@ -303,7 +300,7 @@ class Peer(LineReceiver):
     if self._typ == 'srv':
       tag = 'clnt%s' % self._id
     if msg:
-      self.fp.write("%s %s\n" % (tag, msg))
-      self.fp.flush()
+      self.lfh.write("%s %s\n" % (tag, msg))
+      self.lfh.flush()
 
 
