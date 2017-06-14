@@ -14,17 +14,18 @@ from twisted.protocols.basic import LineReceiver
 from twisted.enterprise import adbapi
 from twisted.application import service
 from twisted.python import log
+from twisted.logger import Logger
 
 # Local imports
 sys.path.insert(0, './pylib')
-from Peer import Peer, Msg
+from Peer import Peer, Msg, MSTR
 from DB import DB
 
 # Globals
 LOGFILE     = './log/client.log'
 DT          = "clnt"
 DBPATH      = './db/data.db'
-PEER_TYPE   = DT     # type for DB and Peer classes
+PEER_TYPE   = MSTR    # type for DB and Peer classes
 LISTEN_PORT = 8001
 APPSRV_PORT = 8007
 APPSRV      = 'appserver'
@@ -48,15 +49,15 @@ def extractJSONSensorData(jsonstr):
   # {"sensor":[{"id":"0","val":"498","time":"1495833550"}]}
   try:
     obj = json.loads(jsonstr)
-    sdata = obj['sensor'][0]
-    ret['id']      = int(sdata['id'])
+    sdata          = obj['sensor'][0]
+    ret['sens_id'] = int(sdata['id'])
     ret['raw_val'] = int(sdata['val'])
     ret['time']    = int(sdata['time'])
     # Get voltage from raw ADC value
     ret['val']     = round(float(int(ret['raw_val']) / CON_FACTOR), 3)
   except Exception, e:
     ret = None
-    log("Error: can't decode sensor data. Data ignored")
+    msg.err("Error: can't decode sensor data. Data ignored")
     #log("Error: e=%s" % e)
   return ret
 
@@ -105,29 +106,32 @@ class txDataFactory(RCFactory):
   maxDelay = 1800  # 30 min
  
   def __init__(self):
-    self._typ    = PEER_TYPE
-    self.db      = DB(DBPATH, PEER_TYPE)  
+    self.db            = DB(DBPATH, PEER_TYPE)
+    self.do_cache_data = False
 
     # TODO: something about this global
     global getter
     getter = self
 
   def buildProtocol(self, addr):
-    p = Peer(self, self._typ, self.db)
+    p = Peer(self, PEER_TYPE, self.db)
     p.factory = self
     self.resetDelay()
     log.msg("connected to app server %s" % addr)
+    self.do_cache_data = False
     return p
 
   def clientConnectionFailed(self, connector, reason):
     RCFactory.clientConnectionFailed(self, connector, reason)
-    log.err("conn to appsrv failed %s" % reason)
-    self.protocol = None
+    log.err(_stuff="conn to appsrv failed", _why=reason)
+    self.do_cache_data = True
+#     self.protocol = None
 
   def clientConnectionLost(self, connector, reason):
     RCFactory.clientConnectionLost(self, connector, reason)
-    log.err("conn to appsrv lost %s" % reason)
-    self.protocol = None
+    log.err(_stuff="conn to appsrv lost", _why=reason)
+    self.do_cache_data = True
+#     self.protocol = None
 
   # Send data onto peer, or store event
   def sendData(self):
@@ -135,12 +139,12 @@ class txDataFactory(RCFactory):
     global queue
     while len(queue) > 0:
       data = queue.pop()
-      # Are we connected to the app srv?
-      if self.protocol and self.protocol.connected == 1:
-        ret = self.protocol.txadd(data, tbl='data')
-      else:
+      # Are we connected to the app srv, or should we cache data?
+      if self.do_cache_data:
         log.msg('cache data event id [%d] in event table' % data['data_id']) 
         self.db.insertEvent('data', data['data_id'])
+      else:
+        ret = self.protocol.txadd(data, tbl='data')
     return ret
 
 
@@ -208,6 +212,13 @@ class Ser2TCPDataRXService(service.Service):
     self.tx_factory  = None
 
   def startService(self):
+    '''
+    log.debug("starting Ser2TCPDataRXService")
+    log.info("starting Ser2TCPDataRXService")
+    log.warn("starting Ser2TCPDataRXService")
+    log.error("starting Ser2TCPDataRXService")
+    log.critical("starting Ser2TCPDataRXService")
+    '''
     log.msg("starting Ser2TCPDataRXService")
     p = TCP4ServerEndpoint(reactor, LISTEN_PORT)
     p.listen(rxDataFactory())
@@ -222,6 +233,7 @@ class Ser2TCPDataRXService(service.Service):
 application = service.Application('locClnt')
 
 ser2tcp_service = Ser2TCPDataRXService()
+ser2tcp_service.setName('rxdata')
 ser2tcp_service.setServiceParent(application)
 
 appsrv_service = AppServerTCPTXService()

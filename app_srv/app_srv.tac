@@ -22,7 +22,7 @@ from twisted.application import service
 from twisted.python import log
 # Local imports
 sys.path.insert(0, './pylib')
-from Peer import Peer, Msg
+from Peer import Peer, Msg, SLVE
 from DB import DB
 
 # Globals
@@ -34,9 +34,9 @@ LISTEN_PORT = 8007              # For client connection
 #
 class ClientRXDataFactory(Factory):
   protocol = Peer 
- 
+
   def __init__(self):
-    self.typ    = 'srv'
+    self.typ    = SLVE
     self.dbp    = './db/data.db'
     self.db     = DB(self.dbp, self.typ)
 
@@ -49,7 +49,7 @@ class ClientRXDataFactory(Factory):
 
   def buildProtocol(self, addr):
     log.msg("Got new connection %s" % addr)
-    return self.protocol(self, self.typ, db=self.db)
+    return Peer(self, self.typ, db=self.db)
 
 
 #

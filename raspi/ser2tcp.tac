@@ -19,8 +19,9 @@ from twisted.application import service
 from twisted.python import log
 
 # Globals
-DT         = 'ser2tcp'
-LOGFILE    = './log/'+DT+'.log'
+DTSER      = 'ser rx'
+DTTCP      = 'tcp tx'
+LOGFILE    = './log/ser2tcp.log'
 SRV        = 'localhost'
 
 BAUDRATE   = 9600
@@ -71,19 +72,19 @@ def simpl_csum(data=None):
 class TCPDataProtocol(Protocol):
   
   def connectionMade(self):
-    log.msg("connected to local client", system=DT)
+    log.msg("connected to local client", system=DTTCP)
     global getter
     getter = self
 
   def connectionLost(self, reason):
-    log.msg("disconnected from local client", system=DT)
+    log.msg("disconnected from local client", system=DTTCP)
     global getter
     getter = None
 
   def sendData(self):
     while len(queue) > 0:
       data = queue.pop()
-      log.msg("tcp tx: %s" % data, system=DT)
+      log.msg("%s" % data, system=DTTCP)
       self.transport.write(data+'\n')
 
 
@@ -95,20 +96,20 @@ class TCPDataTXFactory(RCFactory):
   maxDelay = 1800  # 30 min
 
   def buildProtocol(self, addr):
-    log.msg("connected to local client %s" % addr, system=DT)
+    log.msg("connected to local client %s" % addr, system=DTTCP)
     self.resetDelay()
     return TCPDataProtocol()
 
   def startedConnecting(self, connector):
-    log.msg("attempting to connect to local client", system=DT)
+    log.msg("attempting to connect to local client", system=DTTCP)
 
   def clientConnectionFailed(self, connector, reason):
-    log.msg('tcp connection to local client failed', system=DT)
+    log.msg('tcp connection to local client failed', system=DTTCP)
     #log('e=%s' % reason)
     RCFactory.clientConnectionFailed(self, connector, reason)
 
   def clientConnectionLost(self, connector, reason):
-    log.msg('tcp connection to local client lost', system=DT)
+    log.msg('tcp connection to local client lost', system=DTTCP)
     #log('e=%s' % reason)
     RCFactory.clientConnectionLost(self, connector, reason)
 
@@ -119,7 +120,7 @@ class TCPDataTXFactory(RCFactory):
 class TCPDataTXService(service.Service):
 
   def startService(self):
-    log.msg("starting TCPDataTXService", system=DT)
+    log.msg("starting TCPDataTXService", system=DTTCP)
     f = TCPDataTXFactory()
     reactor.connectTCP(SRV, 8001, f)
 
@@ -140,23 +141,23 @@ class SerialDataProtocol(LineReceiver):
     try:
       LineReceiver.makeConnection(self, SerialPort(self, self.spath, reactor))
     except Exception, e:
-      log.err('failed to connect transport to %s e=%s' % (self.spath, e), system=DT)
+      log.err('failed to connect transport to %s e=%s' % (self.spath, e), system=DTSER)
       self.factory.connectionFailed(e)
 
   def connectionMade(self):
-    log.msg('connected to %s ok' % self.spath, system=DT)
+    log.msg('connected to %s ok' % self.spath, system=DTSER)
     self.factory.resetDelay()
     if not self.reqtask.running:
       self.reqtask.start(REQ_PERIOD)
 
   def connectionLost(self, reason):
-    log.msg('connection lost e=%s' % reason, system=DT)
+    log.msg('connection lost e=%s' % reason, system=DTSER)
     if self.reqtask.running:
       self.reqtask.stop()
     self.factory.connectionLost(reason)
 
   def connectionFailed(self, reason):
-    log.msg('connection failed e=%s' % reason, system=DT)
+    log.msg('connection failed e=%s' % reason, system=DTSER)
     if self.reqtask.running:
       self.reqtask.stop()
     self.factory.connectionFailed(reason)
@@ -166,13 +167,13 @@ class SerialDataProtocol(LineReceiver):
 
   # Put rx'd data in the Q
   def lineReceived(self, line):
-    log.msg("rx: '%s'" % line, system=DT)
+    log.msg("%s" % line, system=DTSER)
 
     # Extract and check simple csum
     rxcsum  = int(line.split(' ')[1], base=16)
     jsonstr = line.split(' ')[0] + ' '
     if not chk_csum(jsonstr, rxcsum):
-      log.err("Error: simple csum failed. Data ignored", system=DT)
+      log.err("Error: simple csum failed. Data ignored", system=DTSER)
       return
 
     # Put timestamp on data
@@ -189,7 +190,7 @@ class SerialDataProtocol(LineReceiver):
     if getter is not None:
       getter.sendData()
     else:
-      log.msg('no tcp connection. Data buffered [%d]' % len(queue), system=DT)
+      log.msg('no tcp connection. Data buffered [%d]' % len(queue), system=DTSER)
 #       log.msg('data: %s' % txdata)
 
 
@@ -211,7 +212,7 @@ class SerialDataRXFactory(ClientFactory):
     devs = getSerialPorts()
     # Check at least one serial device exists
     if len(devs) == 0:
-      log.err("no serial dev found", system=DT)
+      log.err("no serial dev found", system=DTSER)
       self.connectionFailed('no serial dev found')
       return None
       
@@ -225,11 +226,11 @@ class SerialDataRXFactory(ClientFactory):
     return p
 
   def connectionFailed(self, reason):
-    log.msg('connection to serial port failed', system=DT)
+    log.msg('connection to serial port failed', system=DTSER)
     self.reconnectSerial()
 
   def connectionLost(self, reason):
-    log.msg('connection to serial port lost', system=DT)
+    log.msg('connection to serial port lost', system=DTSER)
     self.reconnectSerial()
 
   def resetDelay(self):
@@ -237,7 +238,7 @@ class SerialDataRXFactory(ClientFactory):
 
   def reconnectSerial(self):
     self.delay = min(self.delay * self.factor, self.maxDelay)
-    log.msg('reconnect to serial port in %0.2f secs' % self.delay, system=DT)
+    log.msg('reconnect to serial port in %0.2f secs' % self.delay, system=DTSER)
     reactor.callLater(self.delay, self.buildProtocol)
 
 
@@ -248,14 +249,14 @@ class SerialDataRXService(service.Service):
   factory  = SerialDataRXFactory
 
   def startService(self):
-    log.msg("serServ: starting SerialDataRXService", system=DT)
+    log.msg("serServ: starting SerialDataRXService", system=DTSER)
     f = self.factory()
     f.buildProtocol()
  
 ##########################################################
 # Main Application entry point
 ##########################################################
-application = service.Application(DT)
+application = service.Application('tcp2ser')
 
 serdata_service = SerialDataRXService()
 serdata_service.setServiceParent(application)
