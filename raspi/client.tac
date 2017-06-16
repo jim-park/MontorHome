@@ -107,7 +107,6 @@ class txDataFactory(RCFactory):
  
   def __init__(self):
     self.db            = DB(DBPATH, PEER_TYPE)
-    self.do_cache_data = False
 
     # TODO: something about this global
     global getter
@@ -118,32 +117,27 @@ class txDataFactory(RCFactory):
     p.factory = self
     self.resetDelay()
     log.msg("connected to app server %s" % addr)
-    self.do_cache_data = False
+    self.protocol.connected = 1
     return p
 
   def clientConnectionFailed(self, connector, reason):
     RCFactory.clientConnectionFailed(self, connector, reason)
     log.err(_stuff="conn to appsrv failed", _why=reason)
-    self.do_cache_data = True
-#     self.protocol = None
+    self.protocol = None
 
   def clientConnectionLost(self, connector, reason):
     RCFactory.clientConnectionLost(self, connector, reason)
     log.err(_stuff="conn to appsrv lost", _why=reason)
-    self.do_cache_data = True
-#     self.protocol = None
+    self.protocol = None
 
-  # Send data onto peer, or store event
+  # Send data onto peer
   def sendData(self):
     ret = None
     global queue
     while len(queue) > 0:
       data = queue.pop()
-      # Are we connected to the app srv, or should we cache data?
-      if self.do_cache_data:
-        log.msg('cache data event id [%d] in event table' % data['data_id']) 
-        self.db.insertEvent('data', data['data_id'])
-      else:
+      # Are we connected to the app srv?
+      if self.protocol and self.protocol.connected == 1:
         ret = self.protocol.txadd(data, tbl='data')
     return ret
 
@@ -185,9 +179,9 @@ class rxDataFactory(Factory):
   def buildProtocol(self, addr):
     return self.protocol(self)
 
-  # Wrapper for DB.insertDataGetRowId()
+  # Wrapper for DB.insertdatagetid()
   def insertData(self, sdata):
-    return self._db.insertDataGetRowId(sdata)
+    return self._db.insertdatagetid(sdata)
 
 
 #

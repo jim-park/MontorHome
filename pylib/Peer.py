@@ -146,12 +146,19 @@ class Peer(LineReceiver):
     def sendselect(data, tbl):
       for row in data:
         rdata = dict()
-        rdata['data_id'] = int(row[0])
-        rdata['sens_id'] = int(row[1])
-        rdata['val']     = row[2]     # round(float(row[3]))
-        rdata['raw_val'] = int(row[3])
-        rdata['time']    = int(row[4])
-#         outobj = {tbl:rdata}
+        if tbl == 'data':
+          rdata['data_id'] = int(row[0])
+          rdata['sens_id'] = int(row[1])
+          rdata['val']     = row[2]
+          rdata['raw_val'] = int(row[3])
+          rdata['time']    = int(row[4])
+        elif tbl == 'sensor':
+          rdata['sensor_id'] = row[0]
+          rdata['type']      = row[1]
+          rdata['name']      = row[2]
+        else:
+          log.err('Error: unknown table: %s' % tbl)
+        
         self._txjson({tbl:rdata}, self.ADD)
 
     def tblsync(sync, tbl, rowid):
@@ -159,7 +166,7 @@ class Peer(LineReceiver):
         self._state = 'idle'
         if self._typ == SLVE:
           self._txjson({tbl:"%s %s" % (True, rowid)}, self.CSUM)
-          self._db.deltblbyid(tbl, rowid)
+          self._db.deltblgtid(tbl, rowid)
         else:
           d = self._db.selectgte(tbl, rowid + 1)
           d.addCallback(display)
@@ -168,8 +175,9 @@ class Peer(LineReceiver):
         return sync
 
       else:
+        #TODO: Bisection would be better than a simple half
         rowid = int(int(rowid)/2)
-        self._db.deltblbyid(tbl, rowid)
+        self._db.deltblgtid(tbl, rowid)
         self.txcsum(tbl, rowid)
         return sync
 
@@ -213,15 +221,17 @@ class Peer(LineReceiver):
       for field in msg.data[tbl]:
         log.msg('add tbl: %s - %s = %s' % (tbl, field, msg.data[tbl][field]), system='peer')
 
+      data = msg.data[tbl]
       if tbl == 'data':
-        data = msg.data[tbl]
         try:
-          self._db.insertDataByRowId(data)
+          self._db.insertdatabyid(data)
+        except Exception, e:
+          log.err('didnt insert into tbl data e=%s' % e)
+      elif tbl == 'sensor':
+        try:
+          self._db.insertsensorbyid(data)
         except Exception, e:
           log.err('didnt insert into tbl data', e)
-      elif tbl == 'sensor':
-        # TODO: Finish this
-        self._db.insertSensorByRowId(None, None, None)
       else:
         log.err("Error, should never happen, bad insert tbl", system='peer')
 
@@ -257,20 +267,6 @@ class Peer(LineReceiver):
     d.addCallback(self._db.mktxcsumstr, tbl, rowid)
 #     d.addCallback(display)
     d.addCallback(self._txjson, self.CSUM)
-
-  #
-  # Set event in the 'event' table
-  #
-  def setEvent(self, tbl, rowid):
-    log.msg("inserting event, tbl: %s, row: %d" % (tbl, rowid), system='peer')
-    self._db.insertEvent(tbl, rowid)
-
-  #
-  # Get events from the 'event' table
-  #
-  def getEvent(self):
-    log.msg("getting event", system='peer')
-    newrows = yield self._db.getevntrows()
 
   #
   # Divert client or srv verification as necessary
