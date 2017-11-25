@@ -11,8 +11,9 @@
 
 # Imports
 import sys, os, json, time, re
+from OpenSSL import SSL
 
-from twisted.internet import reactor, defer
+from twisted.internet import reactor, defer, ssl
 from twisted.internet.protocol import Protocol, ClientFactory
 from twisted.internet.protocol import Factory
 from twisted.internet.protocol import ReconnectingClientFactory as RCFactory
@@ -36,10 +37,14 @@ LOGFILE = PATH + '/log/client.log'
 DT = "clnt"
 DBPATH = PATH + '/db/data.db'
 PEER_TYPE = MSTR  # type for DB and Peer classes
+
+# Network
 LISTEN_PORT = 8001
 # APPSRV = 'ec2-34-223-254-49.us-west-2.compute.amazonaws.com'
 APPSRV = '192.168.8.100'
 APPSRV_PORT = 8007
+SSL_CERT_PATH = PATH + '/keys/cert.pem'
+SSL_KEY_PATH = PATH + '/keys/clnt_key.pem'
 
 # Voltage conversion factor
 # V = raw_data/CON_FACTOR
@@ -113,6 +118,19 @@ def simpl_csum(data=None):
 
 
 #
+# SSL Context Factory
+#
+class clientSSLCtxFactory(ssl.ClientContextFactory):
+
+    def getContext(self):
+        self.method = SSL.SSLv23_METHOD
+        ctx = ssl.ClientContextFactory.getContext(self)
+        ctx.use_certificate_file(SSL_CERT_PATH)
+        ctx.use_privatekey_file(SSL_KEY_PATH)
+        return ctx
+
+
+#
 # TCP Reconnecting Client Factory 
 # Connects to remote app server
 #
@@ -155,7 +173,6 @@ class txDataFactory(RCFactory):
                 ret = self.protocol.txadd(data, tbl='data')
         return ret
 
-
 #
 # Protocol for incomming local ser2tcp TCP data
 #
@@ -197,13 +214,14 @@ class rxDataFactory(Factory):
         return self._db.insertdatagetid(sdata)
 
 
+
 #
 # Service for connection to app server from localclient
 #
 class AppServerTCPTXService(service.Service):
     def startService(self):
         log.msg("starting AppServerTCPTXService")
-        reactor.connectTCP(APPSRV, APPSRV_PORT, txDataFactory())
+        reactor.connectSSL(APPSRV, APPSRV_PORT, txDataFactory(), clientSSLCtxFactory())
 
     def stopService(self):
         log.msg("stopping AppServerTCPTXService")
