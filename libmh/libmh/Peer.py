@@ -9,25 +9,29 @@ from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor, defer
 from twisted.protocols.basic import LineReceiver
 from twisted.enterprise import adbapi
-from twisted.python import log
+# from twisted.python import Logger
+from twisted.logger import Logger
 
 # Custom imports
 from DB import DB
 
 # Dubious Globals
 # TODO: move many of these into a file
-# Srv details
-TABLES = ['data', 'sensor']
-CLIENTS = [{"0": "iw9foj5ojv4dg2vd"}]
 
 # Clnt credentials
 ID = "0"
 PW = "iw9foj5ojv4dg2vd"
 
+# Srv details
+TABLES = ['data', 'sensor']
+CLIENTS = [{"0": PW}]
+
 # Define slave / master tags
 SLVE = 'SLAVE'
 MSTR = 'MASTER'
 
+# initialise logging
+log = Logger()
 
 #
 # Message container
@@ -61,6 +65,7 @@ class Peer(LineReceiver):
         self._verifd = False
         self.dbp = "./db/data.db"
         self.state = 'vrfy'
+
         if db:
             self._db = db
         else:
@@ -74,22 +79,22 @@ class Peer(LineReceiver):
     def lineReceived(self, line):
         msg = False
 
-        log.msg("rx: %s len %d" % (line, len(line)), system='peer')
         msg = self._jsonDecode(line)
+        log.debug('rx msg type: %s' % msg.type, system='peer')
 
         # Check msg decoded ok
         if not msg: return
 
         # Check msg type allowed
         if msg.type not in self.msg_types:
-            log.msg('Error: bad msg type', system='peer')
-            log.msg('Aborting', system='peer')
+            log.debug('Error: bad msg type', system='peer')
+            log.debug('Aborting', system='peer')
             return
 
         # Check client is verified (or is about to be)
         if not self._verifd and msg.type != self.INIT:
-            log.msg('Error: client not verfied', system='peer')
-            log.msg('Aborting', system='peer')
+            log.debug('Error: client not verfied', system='peer')
+            log.debug('Aborting', system='peer')
             return
 
         # Deal with msg types
@@ -103,7 +108,7 @@ class Peer(LineReceiver):
     #
     def connectionMade(self):
         if self._typ == MSTR:
-            log.msg("connection made", system='peer')
+            log.debug("connection made", system='peer')
             # TODO: Fix this, horrible
             data = {"id": ID, "pw": PW}
             self._txjson(data, self.INIT)
@@ -120,12 +125,12 @@ class Peer(LineReceiver):
             obj = json.loads(line)
             msg.type = obj[0]
             msg.data = obj[1]
-            #       log.msg('json msg type: %s' % msg.type, system='peer')
+            #       log.debug('json msg type: %s' % msg.type, system='peer')
             #       for key, val in msg.data.iteritems():
-            #         log.msg('json msg data: %s : %s' % (key, val), system='peer')
+            #         log.debug('json msg data: %s : %s' % (key, val), system='peer')
             ret = msg
         except Exception, e:
-            log.msg("Error: can't decode msg, e=%s" % e, system='peer')
+            log.debug("Error: can't decode msg, e=%s" % e, system='peer')
 
         return ret
 
@@ -134,11 +139,11 @@ class Peer(LineReceiver):
     #
     def _rxcsum(self, msg):
         rowid = None
-        log.msg('begin _rxcsum: %s' % (msg), system='peer')
+        log.debug('begin _rxcsum: %s' % (msg), system='peer')
 
         def cmpcsums(csum, rcsum):
             ret = False
-            log.msg('%s == %s' % (csum, rcsum), system='peer')
+            log.debug('%s == %s' % (csum, rcsum), system='peer')
             if csum == rcsum:
                 ret = True
             return ret
@@ -157,7 +162,7 @@ class Peer(LineReceiver):
                     rdata['type'] = row[1]
                     rdata['name'] = row[2]
                 else:
-                    log.err('Error: unknown table: %s' % tbl)
+                    log.error('Error: unknown table: %s' % tbl)
 
                 self._txjson({tbl: rdata}, self.ADD)
 
@@ -186,11 +191,11 @@ class Peer(LineReceiver):
             rcsum = msg.data[tbl].split()[0]
             rowid = msg.data[tbl].split()[1]
             rowid = int(rowid)
-            log.msg('tbl: %s, rcsum: %s rowid: %d' % (tbl, rcsum, rowid), system='peer')
+            log.debug('tbl: %s, rcsum: %s rowid: %d' % (tbl, rcsum, rowid), system='peer')
 
             if rcsum == 'True':
                 # We have positive checksum confirmation
-                log.msg('tbl: %s, synced ok to rowid: %d' % (tbl, rowid), system='peer')
+                log.debug('tbl: %s, synced ok to rowid: %d' % (tbl, rowid), system='peer')
                 if self._typ == MSTR:
                     d = defer.Deferred()
                     d = self._db.selectgte(tbl, rowid + 1)
@@ -216,21 +221,21 @@ class Peer(LineReceiver):
 
             # Debug output
             for field in msg.data[tbl]:
-                log.msg('add tbl: %s - %s = %s' % (tbl, field, msg.data[tbl][field]), system='peer')
+                log.debug('add tbl: %s - %s = %s' % (tbl, field, msg.data[tbl][field]), system='peer')
 
             data = msg.data[tbl]
             if tbl == 'data':
                 try:
                     self._db.insertdatabyid(data)
                 except Exception, e:
-                    log.err('didnt insert into tbl data e=%s' % e)
+                    log.error('didnt insert into tbl data e=%s' % e)
             elif tbl == 'sensor':
                 try:
                     self._db.insertsensorbyid(data)
                 except Exception, e:
-                    log.err('didnt insert into tbl data', e)
+                    log.error('didnt insert into tbl data', e)
             else:
-                log.err("Error, should never happen, bad insert tbl", system='peer')
+                log.error("Error, should never happen, bad insert tbl", system='peer')
 
     #
     # Send add message to the other side
@@ -238,7 +243,7 @@ class Peer(LineReceiver):
     def txadd(self, data, tbl):
         jsondata = {}
         jsondata[tbl] = data
-        log.msg("Peer.txadd, data: %s" % jsondata, system='peer')
+        log.debug("Peer.txadd, data: %s" % jsondata, system='peer')
         self._txjson(jsondata, 'add')
 
     #
@@ -248,14 +253,14 @@ class Peer(LineReceiver):
     @inlineCallbacks
     def txcsum(self, tbl, rowid=None):
 
-        log.msg("txcsum begin", system='peer')
+        log.debug("txcsum begin", system='peer')
         if rowid is None:
             # Get max rowid for table
             rowid = yield self._db.getmaxrowid(tbl)
-            log.msg("rowid type: %s" % (type(rowid)))
+            log.debug("rowid type: %s" % (type(rowid)))
             if type(rowid) == list: rowid = rowid[0][0]
             if rowid is None:       rowid = 0
-        log.msg("tbl, rowid: %s, %s" % (tbl, rowid))
+        log.debug("tbl, rowid: %s, %s" % (tbl, rowid))
 
         d = defer.Deferred()
         d = self._db.selectlte(tbl, rowid)
@@ -296,18 +301,18 @@ class Peer(LineReceiver):
             self._verifd = True
             self.state = 'init'
 
-            log.msg("client id %d verified ok" % self._id, system='peer')
+            log.debug("client id %d verified ok" % self._id, system='peer')
             self._txjson({'verify': True}, self.INIT)
 
             # Send table csums to begin initialisation
             for tbl in TABLES:
-                log.msg("call txcsum(%s)" % tbl, system='peer')
+                log.debug("call txcsum(%s)" % tbl, system='peer')
                 self.txcsum(tbl)
                 self.state = 'init'
         else:
             # Verification failure
             # Send negative response to client
-            log.msg("client failed verification, disconnected", system='peer')
+            log.debug("client failed verification, disconnected", system='peer')
             self.transport.loseConnection()
         return ret
 
@@ -321,7 +326,7 @@ class Peer(LineReceiver):
         # msg.type == init
         # msg.data == {"verify":True}
         if msg.data['verify'] == True:
-            log.msg("verified with server ok", system='peer')
+            log.debug("verified with server ok", system='peer')
             self._verifd = True
             self.state = 'init'
 
@@ -332,10 +337,10 @@ class Peer(LineReceiver):
     def _txjson(self, data, msg_type):
         # sanity check
         if msg_type not in self.msg_types:
-            log.err("msg type: '%s' not allowed. msg not sent." % msg_type)
+            log.error("msg type: '%s' not allowed. msg not sent." % msg_type)
             return
 
         json_str = json.dumps([msg_type, data])
-        log.msg('tx: %s' % json_str)
+        log.debug('tx: {str}'.format(str=json_str))
         # TODO: Send a simple csum
         self.sendLine(json_str)
