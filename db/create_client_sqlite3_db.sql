@@ -5,6 +5,7 @@ CREATE TABLE "sensor" (
     "type" TEXT NOT NULL,
     "name" TEXT NOT NULL
 );
+UPDATE SQLITE_SEQUENCE SET seq = -1 WHERE name = "sensor";
 
 CREATE TABLE "data" (
     "data_id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -14,5 +15,8 @@ CREATE TABLE "data" (
     "date" INTEGER NOT NULL,
     FOREIGN KEY(sensor_id) REFERENCES sensor(sensor_id)
 );
+
+# Populate sensor tbl
+INSERT INTO sensor ('a', 'batt1')
 
 COMMIT;
