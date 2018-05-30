@@ -1,0 +1,141 @@
+- hosts: helga
+  become: yes
+  tasks:
+
+    #
+    # Configure hostname
+    #
+    - name: set hostname to helga
+      hostname:
+        name: "helga"
+
+    #
+    # Configure users
+    #
+    - name: create user 'mh', add to group 'dialout'
+      user:
+        name: mh
+        comment: MontorHome application user
+        groups: dialout
+ 
+    #
+    # Configure RPi Locale
+    #
+    - name: set timezone
+      timezone:
+        name: "GB" 
+
+    #
+    # Configure packages
+    #
+    - name: Update package cache and upgrade existing packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+    
+    - name: Update package cache again
+      apt:
+        update_cache: yes
+ 
+    - name: Install supervisord package
+      apt:
+        name: supervisor
+
+    - name: Install sqlite3
+      apt:
+        name: sqlite3
+
+    # Libraries #
+
+    # libff-dev
+    - name: Install libff-dev
+      apt:
+        name: libffi-dev
+    
+    # libssl-dev
+    - name: Install libssl-dev
+      apt:
+          name: libssl-dev
+    
+    # Python modules #
+    
+    # Urllib3
+    - name: Install python-urllib3 package
+      apt:
+          name: python-urllib3
+
+    # Twisted
+    - name: Install python-twisted package
+      apt:  
+        name: python-twisted
+   
+    # Setuptools
+    - name: Install python-setuptools package
+      apt:
+          name: python-setuptools
+ 
+    # Pycparser
+    - name: Install python-pycparser package
+      apt:
+          name: python-pycparser
+ 
+    # Cryptography
+    - name: Install python-cryptography package
+      apt:
+          name: python-cryptography
+    
+    # Automaton
+    - name: Install python-automaton package
+      apt:
+          name: python-automaton
+ 
+    # Six
+    - name: Install python-six package
+      apt:
+          name: python-six
+ 
+    # Idna
+    - name: Install python-idna package
+      apt:
+          name: python-idna
+ 
+    # Cffi
+    - name: Install python-cffi package
+      apt:
+          name: python-cffi
+ 
+    # Constantly
+    - name: Install python-constantly package
+      apt:
+          name: python-constantly
+ 
+    # Openssl
+    - name: Install python-openssl package
+      apt:
+          name: python-openssl
+ 
+    # Finally ... pip
+    - name: Install python-pip package
+      apt:  
+        name: python-pip
+
+
+    #
+    # Configure SSH login to be keys only
+    #
+    - name: Disallow password authentication
+      lineinfile: dest=/etc/ssh/sshd_config
+                  regexp="^PasswordAuthentication"
+                  line="PasswordAuthentication no"
+                  state=present
+      notify: Restart ssh
+
+  handlers:
+    - name: Restart ssh
+      service: name=ssh state=restarted
+
+#
+# Include play to build and install Montorhome apps & libs
+#
+- name: Include libmh play
+  import_playbook: build_inst_libmh.yml

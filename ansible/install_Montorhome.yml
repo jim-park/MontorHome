@@ -1,0 +1,149 @@
+- hosts: helga
+  vars:
+      mh_dir: /opt/mh/
+  tasks:
+    # Create directory structure
+    - name: Create {{ mh_dir }} dir structure
+      become: yes 
+      file:
+        path: "{{  mh_dir  }}{{  item  }}"
+        state: directory
+        owner: mh
+        group: mh
+      with_items:
+        - ['bin', 'db', 'log', 'run', 'keys']
+
+    # Copy keys
+    - name: copy client ssl keys
+      # Requires 2 lines ansible.cnf
+      # allow_world_readable_tmpfiles = True
+      # pipelining = True
+      become: yes
+      become_user: mh 
+      copy:
+        src: /home/user1/Montorhome/keys/{{ item }}
+        dest: /opt/mh/keys/
+      with_items:
+        - ['clnt_key.pem', 'cert.pem']
+    
+    # Copy sqlite3 DB init script
+    - name: copy sqlite3 DB init script
+      become: yes
+      become_user: mh 
+      copy:
+        src: /home/user1/Montorhome/mh_project/db/create_client_db.sql
+        dest: /opt/mh/db/
+
+    # Copy client executable
+    - name: copy client.tac to remote
+      become: yes
+      become_user: mh 
+      copy:
+        src: /home/user1/Montorhome/mh_project/raspi/client.tac
+        dest: /opt/mh/bin/
+
+    # Copy ser2tcp executable
+    - name: copy ser2tcp.tac to remote
+      become: yes
+      become_user: mh 
+      copy:
+        src: /home/user1/Montorhome/mh_project/raspi/ser2tcp.tac
+        dest: /opt/mh/bin/
+
+    # Find any running twistd processes
+    - name: Get running twistd processes
+      become: yes
+      shell: "supervisorctl status | awk '{print $1}'"
+      register: running_processes
+
+    # Stop existing client process
+    - name: stop any running mh processes
+      become: yes
+      supervisorctl:
+        name: "{{ item }}"
+        state: stopped
+      with_items: "{{ running_processes.stdout_lines }}"
+
+    # Stop existing ser2tcp process
+    #- name: stop running ser2tcp process
+    #  supervisorctl:
+    #    name: ser2tcp
+    #    state: stopped
+
+    # Find any running twistd processes
+    #- name: Get running twistd processes
+    #  shell: "ps -ef | grep -v grep | grep -w twistd | awk '{print $2}'"
+    #  register: running_processes
+
+    # Stop any running twistd processes (make sure they're stopped)
+    #- name: Kill any existing twistd processes
+    #  become: yes
+    #  shell: "kill {{ item }}"
+    #  with_items: "{{  running_processes.stdout_lines }}"
+
+    # Wait for twistd processes to stop
+    #- name: Waiting for running twistd processes to stop
+    #  become: yes
+    #  wait_for:
+    #    path: "/proc/{{ item }}/status"
+    #    state: absent
+    #  with_items: "{{  running_processes.stdout_lines }}"
+    
+    # Setup DB using init script    
+    - name: Initialise sqlite3 DB
+      become: yes
+      become_user: mh
+      command: sqlite3 -init /opt/mh/db/create_client_db.sql /opt/mh/db/data.db
+
+    # Copy supervisord client configuration file
+    - name: copy supervisord client configuration file to host
+      become: yes
+      copy:
+        src: /home/user1/Montorhome/mh_project/raspi/init/files/mh_client_supervisor.conf
+        dest: /etc/supervisor/conf.d/
+
+    # Copy supervisord ser2tcp configuration file
+    - name: copy supervisord ser2tcp configuration file to host
+      become: yes
+      copy:
+        src: /home/user1/Montorhome/mh_project/raspi/init/files/mh_ser2tcp_supervisor.conf
+        dest: /etc/supervisor/conf.d/
+
+    # Start mh processes through supervisord
+    - name: start client process
+      become: yes
+      supervisorctl:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - client
+        - ser2tcp
+
+
+    # Start ser2tcp process through supervisord
+    #- name: start ser2tcp process
+    #  become: yes
+    #  supervisorctl:
+    #    name: ser2tcp
+    #    state: restarted
+
+    # #
+    #   Executing .tac files using twistd;
+    #     `twistd --pidfile=./<app_name>.pid -noy ./<app_name>.tac`
+    #
+    #      -noy; no-daemonise, no save state, run as python
+    # #
+
+    # Start ser2tcp
+    #- name: Start ser2tcp twistd daemon
+    #  become: yes
+    #  command: twistd --pidfile=run/ser2tcp.pid --logfile=log/ser2tcp.log -oy bin/ser2tcp.tac
+    #  args:
+    #    chdir: /opt/mh
+
+    # Start client
+    #- name: Start client twistd daemon
+    #  become: yes
+    #  command: twistd --pidfile=run/client.pid --logfile=log/client.log -oy bin/client.tac
+    #  args:
+    #    chdir: /opt/mh
