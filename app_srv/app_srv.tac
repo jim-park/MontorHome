@@ -23,17 +23,20 @@ from twisted.python import log
 
 # Local imports
 PATH = '/opt/mh'
-sys.path.insert(0, PATH + '/pylib')
+sys.path.insert(0, PATH + '/libmh/libmh')
 from Peer import Peer, Msg, SLVE
-from DB import DB
+from DB import MySQLDB
 
 # Network
 LISTEN_PORT = 8007  # For client connection
 SSL_CERT_PATH = PATH + '/keys/cert.pem'
-SSL_KEY_PATH = PATH + '/keys/srv_privkey.pem'
+SSL_KEY_PATH = PATH + '/keys/privkey.pem'
 
 # DB
 DB_PATH = PATH + '/db/data.db'
+DB_NAME = 'mh_data'
+DB_USER = None
+DB_PASS = None
 
 #
 # Factory - Deal with incoming connections
@@ -44,7 +47,7 @@ class ClientRXDataFactory(Factory):
     def __init__(self):
         self.typ = SLVE
         self.dbp = DB_PATH
-        self.db = DB(self.dbp, self.typ)
+        self.db = MySQLDB(self.dbp, self.typ)
 
     def startFactory(self):
         log.msg('waiting for connection')

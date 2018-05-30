@@ -111,7 +111,7 @@ void send_sample(unsigned int * sample)
   /* This json message format is used, eg.. */
   /* {"sensor":[{"id":"0", "val":"582"}, {"id":"1", "val":"542"}]} */
   char sstring[4] = "";  //buf to hold sample as str
-  const char * out_str_start = "{\"sensor\":[{\"id\":\"0\",\"val\":\"";
+  const char * out_str_start = "{\"sensor\":[{\"id\":\"1\",\"val\":\"";
   const char * out_str_end = "\"}]} ";
   char tmpstr[42]  = "";
   unsigned int chksum = 0;

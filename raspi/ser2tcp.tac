@@ -25,8 +25,10 @@ PATH = '/opt/mh'
 LOGFILE = PATH + '/log/ser2tcp.log'
 SRV = 'localhost'
 
+# Config
+# TODO: put this in an external config file
 BAUDRATE = 9600
-REQ_PERIOD = 5  # request period for sensor data (secs)
+REQ_PERIOD = 30  # request period for sensor data (secs)
 
 queue = []  # message q between factories
 getter = None  # getter for message q
@@ -39,7 +41,7 @@ def getSerialPorts():
     import re
     ports = []
     dir = '/dev/'
-    r = re.compile('tty(USB|ACM)\d{1,2}')
+    r = re.compile('tty(USB|ACM)\d{0,2}')
     for path in os.listdir(dir):
         m = re.match(r, path)
         if m:

@@ -27,24 +27,23 @@ from twisted.python import log
 from twisted.logger import Logger
 
 # Local imports
-PATH = '/opt/mh'
-sys.path.insert(0, PATH + '/pylib')
-from Peer import Peer, Msg, MSTR
-from DB import DB
+from libmh.Peer import Peer, Msg, MSTR
+from libmh.DB import SQLite3DB
 
 # Globals
-LOGFILE = PATH + '/log/client.log'
+BASEPATH = '/opt/mh'
+LOGFILE = BASEPATH + '/log/client.log'
 DT = "clnt"
-DBPATH = PATH + '/db/data.db'
+DBPATH = BASEPATH + '/db/data.db'
 PEER_TYPE = MSTR  # type for DB and Peer classes
 
 # Network
 LISTEN_PORT = 8001
 # APPSRV = 'ec2-34-223-254-49.us-west-2.compute.amazonaws.com'
-APPSRV = '192.168.8.100'
+APPSRV = '192.168.8.101'
 APPSRV_PORT = 8007
-SSL_CERT_PATH = PATH + '/keys/cert.pem'
-SSL_KEY_PATH = PATH + '/keys/clnt_key.pem'
+SSL_CERT_PATH = BASEPATH + '/keys/cert.pem'
+SSL_KEY_PATH = BASEPATH + '/keys/clnt_key.pem'
 
 # Voltage conversion factor
 # V = raw_data/CON_FACTOR
@@ -138,7 +137,7 @@ class txDataFactory(RCFactory):
     maxDelay = 1800  # 30 min
 
     def __init__(self):
-        self.db = DB(DBPATH, PEER_TYPE)
+        self.db = SQLite3DB(DBPATH, PEER_TYPE)
 
         # TODO: something about this global
         global getter
@@ -204,7 +203,7 @@ class rxDataFactory(Factory):
     protocol = rxDataProt
 
     def __init__(self):
-        self._db = DB(DBPATH, PEER_TYPE)
+        self._db = SQLite3DB(DBPATH, PEER_TYPE)
 
     def buildProtocol(self, addr):
         return self.protocol(self)
