@@ -23,7 +23,7 @@ log = Logger()
 # DB class
 #
 class DB:
-    SELECTALL = "SELECT * FROM %s ORDER BY %s_id"
+    # SELECTALL = "SELECT * FROM %s ORDER BY %s_id"
     SELECTLTE = "SELECT * FROM %s WHERE %s_id <= %s ORDER BY %s_id"
     SELECTGTE = "SELECT * FROM %s WHERE %s_id >= %s ORDER BY %s_id"
     SELECTMAX = "SELECT max(%s_id) FROM %s"
@@ -61,7 +61,11 @@ class DB:
     # Select less than or equal to the given rowid
     #
     def selectlte(self, tbl, rowid):
-        sql = self.SELECTLTE % (tbl, tbl, rowid, tbl)
+        SELECTLTE = "SELECT %s FROM %s WHERE %s_id <= %s ORDER BY %s_id"
+        if tbl == 'data':
+            sql = SELECTLTE % ("data_id, sensor_id, data, raw_data, date", tbl, tbl, rowid, tbl)
+        elif tbl == 'sensor':
+            sql = SELECTLTE % ("sensor_id, type, name", tbl, tbl, rowid, tbl)
         return threads.deferToThreadPool(reactor, self._dbpool.threadpool,
                                          self._execute, sql
                                          )
@@ -256,7 +260,10 @@ class SQLite3DB(DB):
             log.error('Error - unknown exception executing sql. e:%s' % e)
         self._dbpool.disconnect(conn)
         self._dblock.release()
-        return ret
+        if ret:
+            return ret
+        else:
+            raise e
 
 #
 # MySQL superclass
@@ -265,7 +272,7 @@ class MySQLDB(DB):
 
     def __init__(self, dbpath, peer_type):
         DB.__init__(self, dbpath, peer_type)
-        self._dbpool = adbapi.ConnectionPool("mysql.connector", user='root', password='',
+        self._dbpool = adbapi.ConnectionPool("mysql.connector", user='root', password='0HFYad47',
                                                                 host='127.0.0.1',
                                                                 database='mh_data')
 

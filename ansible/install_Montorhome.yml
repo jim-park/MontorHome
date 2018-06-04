@@ -31,7 +31,7 @@
       become: yes
       become_user: mh 
       copy:
-        src: /home/user1/Montorhome/mh_project/db/create_client_db.sql
+        src: /home/user1/Montorhome/mh_project/db/create_client_sqlite3_db.sql
         dest: /opt/mh/db/
 
     # Copy client executable

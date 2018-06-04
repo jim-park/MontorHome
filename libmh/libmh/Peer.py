@@ -80,7 +80,11 @@ class Peer(LineReceiver):
         msg = False
 
         msg = self._jsonDecode(line)
-        log.debug('rx msg type: %s' % msg.type, system='peer')
+
+        # hack to workaround formatting bug here;
+        #'https://github.com/micheloosterhof/cowrie/issues/8'
+        for key, val in  msg.data.iteritems():
+            log.debug("rx: %s: %s: %s" % (msg.type, key, val), system='peer')
 
         # Check msg decoded ok
         if not msg: return
@@ -339,8 +343,11 @@ class Peer(LineReceiver):
         if msg_type not in self.msg_types:
             log.error("msg type: '%s' not allowed. msg not sent." % msg_type)
             return
-
         json_str = json.dumps([msg_type, data])
-        log.debug('tx: {str}'.format(str=json_str))
+
+        # hack to workaround formatting bug here;
+        #'https://github.com/micheloosterhof/cowrie/issues/8'
+        for key, val in  data.iteritems():
+            log.debug("tx: %s: %s: %s" % (msg_type, key, val), system='peer')
         # TODO: Send a simple csum
         self.sendLine(json_str)

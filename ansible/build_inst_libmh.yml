@@ -7,15 +7,9 @@
     # Build and install python libmh
     #
     
-    # get local dir
-    #- name: local dir
-    #  local_action: command pwd
-    #- debug: var={{ "local_cwd" }}
-
- 
     # create python wheel locally from sources
     - name: build libmh python egg
-      local_action: command /usr/bin/python setup.py bdist_wheel --universal
+      local_action: command /usr/bin/python setup.py bdist_wheel --python-tag 2.7
       args:
         chdir: "{{ local_cwd }}../libmh"
 
@@ -23,7 +17,7 @@
     - name: get wheel filename
       local_action: shell find ./../libmh -name *.whl -type f -printf "%f\n"
       register: find
-    #- debug: var=find.stdout_lines
+    - debug: var=find.stdout_lines[0]
 
     # copy python wheel to target
     - name: copy libmh wheel to remote
@@ -34,14 +28,6 @@
         dest: /tmp/
 
     # install egg on target
-#    - name: install libmh wheel on remote
-#      pip:
-#        name: file:///tmp/{{ find.stdout_lines[0] }}
-#        virtualenv_site_packages: yes
-
-    # install egg on target
     - name: install libmh wheel on target
       become: yes
       command: pip install /tmp/{{ find.stdout_lines[0] }}
-#      args:
-#        chdir: /opt/mh
