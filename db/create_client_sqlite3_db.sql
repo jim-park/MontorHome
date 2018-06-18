@@ -16,7 +16,7 @@ CREATE TABLE "data" (
     FOREIGN KEY(sensor_id) REFERENCES sensor(sensor_id)
 );
 
-# Populate sensor tbl
-INSERT INTO sensor ('a', 'batt1')
+-- Populate sensor tbl with basic info
+INSERT INTO sensor ('a', 'batt1');
 
 COMMIT;

@@ -9,7 +9,7 @@
     
     # create python wheel locally from sources
     - name: build libmh python egg
-      local_action: command /usr/bin/python setup.py bdist_wheel --python-tag 2.7
+      local_action: command /usr/bin/python setup.py bdist_wheel
       args:
         chdir: "{{ local_cwd }}../libmh"
 
