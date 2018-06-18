@@ -272,7 +272,7 @@ class MySQLDB(DB):
 
     def __init__(self, dbpath, peer_type):
         DB.__init__(self, dbpath, peer_type)
-        self._dbpool = adbapi.ConnectionPool("mysql.connector", user='root', password='0HFYad47',
+        self._dbpool = adbapi.ConnectionPool("mysql.connector", user='mh_db_user', password='app_srv0HFY',
                                                                 host='127.0.0.1',
                                                                 database='mh_data')
 
