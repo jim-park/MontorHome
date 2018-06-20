@@ -27,7 +27,24 @@
         src: "{{ local_cwd }}../libmh/dist/{{ find.stdout_lines[0] }}"
         dest: /tmp/
 
-    # install egg on target
-    - name: install libmh wheel on target
+    - name: Check if libmh already exists
+      stat:
+        path: /usr/lib/python2.7/dist-packages/libmh
+      register: stat_libmh_result
+
+    # full install egg on target
+    - name: do full install libmh wheel on target
       become: yes
-      command: pip install /tmp/{{ find.stdout_lines[0] }}
+      command: /usr/bin/pip2 install --target /usr/lib/python2.7/dist-packages/ build_inst_libmh.yml/tmp/{{ find.stdout_lines[0] }}
+      when: stat_libmh_result.stat.isdir == False
+
+    # skinny install egg on target
+    - name: install libmh wheel only on target (no dependencies)
+      become: yes
+      command: /usr/bin/pip2 install
+              --no-deps
+              --force-reinstall
+              --upgrade
+              --target /usr/lib/python2.7/dist-packages/
+              /tmp/{{ find.stdout_lines[0] }}
+      when: stat_libmh_result.stat.isdir == True

@@ -21,14 +21,15 @@ from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet.defer import inlineCallbacks
 from twisted.protocols.basic import LineReceiver
-from twisted.enterprise import adbapi
 from twisted.application import service
-from twisted.python import log
+# from twisted.python import log
 from twisted.logger import Logger
+from twisted.python.log import ILogObserver
 
 # Local imports
-from libmh.Peer import Peer, Msg, MSTR
-from libmh.DB import SQLite3DB
+from libmh.peer import Peer, Msg, MSTR
+from libmh.db import SQLite3DB
+from libmh.mhlog import mhlogger
 
 # Globals
 BASEPATH = '/opt/mh'
@@ -135,6 +136,7 @@ class clientSSLCtxFactory(ssl.ClientContextFactory):
 #
 class txDataFactory(RCFactory):
     maxDelay = 1800  # 30 min
+    log = Logger()
 
     def __init__(self):
         self.db = SQLite3DB(DBPATH, PEER_TYPE)
@@ -147,18 +149,18 @@ class txDataFactory(RCFactory):
         p = Peer(self, PEER_TYPE, self.db)
         p.factory = self
         self.resetDelay()
-        log.msg("connected to app server %s" % addr)
+        self.log.debug("connected to app server {addr}", addr=addr, system='txdata')
         self.protocol.connected = 1
         return p
 
     def clientConnectionFailed(self, connector, reason):
         RCFactory.clientConnectionFailed(self, connector, reason)
-        log.err(_stuff="conn to appsrv failed", _why=reason)
+        self.log.warn(_stuff="conn to appsrv failed", _why=reason, system='txdata')
         self.protocol = None
 
     def clientConnectionLost(self, connector, reason):
         RCFactory.clientConnectionLost(self, connector, reason)
-        log.err(_stuff="conn to appsrv lost", _why=reason)
+        self.log.error(_stuff="conn to appsrv lost", _why=reason, system='txdata')
         self.protocol = None
 
     # Send data onto peer
@@ -172,16 +174,19 @@ class txDataFactory(RCFactory):
                 ret = self.protocol.txadd(data, tbl='data')
         return ret
 
+
 #
 # Protocol for incomming local ser2tcp TCP data
 #
 class rxDataProt(Protocol):
+    log = Logger()
+
     def __init__(self, factory):
         self.factory = factory
 
     def dataReceived(self, data):
         for line in data.splitlines():
-            log.msg("rx: %s" % line)
+            self.log.debug("rx: {line}", line=line)
             d = defer.Deferred()
             d = chklinecsum(line)
             d.addCallback(extractJSONSensorData)
@@ -213,17 +218,18 @@ class rxDataFactory(Factory):
         return self._db.insertdatagetid(sdata)
 
 
-
 #
 # Service for connection to app server from localclient
 #
 class AppServerTCPTXService(service.Service):
+    log = Logger()
+
     def startService(self):
-        log.msg("starting AppServerTCPTXService")
+        self.log.info("starting AppServerTCPTXService")
         reactor.connectSSL(APPSRV, APPSRV_PORT, txDataFactory(), clientSSLCtxFactory())
 
-    def stopService(self):
-        log.msg("stopping AppServerTCPTXService")
+    # def stopService(self):
+    #     self.log.info("stopping AppServerTCPTXService")
 
 
 #
@@ -231,32 +237,28 @@ class AppServerTCPTXService(service.Service):
 # We bind, ser2tcp connects.
 #
 class Ser2TCPDataRXService(service.Service):
+    log = Logger()
+
     def __init__(self):
         self.tx_factory = None
 
     def startService(self):
-        '''
-        log.debug("starting Ser2TCPDataRXService")
-        log.info("starting Ser2TCPDataRXService")
-        log.warn("starting Ser2TCPDataRXService")
-        log.error("starting Ser2TCPDataRXService")
-        log.critical("starting Ser2TCPDataRXService")
-        '''
-        log.msg("starting Ser2TCPDataRXService")
+        self.log.info("starting Ser2TCPDataRXService")
         p = TCP4ServerEndpoint(reactor, LISTEN_PORT)
         p.listen(rxDataFactory())
 
-    def stopService(self):
-        log.msg("stopping Ser2TCPDataRXService")
+    # def stopService(self):
+    #     log.msg("stopping Ser2TCPDataRXService")
 
 
 ##########################################################
 # Main Application entry point
 ##########################################################
-application = service.Application('locClnt')
+application = service.Application('client')
+application.setComponent(ILogObserver, mhlogger('client'))
 
 ser2tcp_service = Ser2TCPDataRXService()
-ser2tcp_service.setName('rxdata')
+ser2tcp_service.setName('rxserdata')
 ser2tcp_service.setServiceParent(application)
 
 appsrv_service = AppServerTCPTXService()

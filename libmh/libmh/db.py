@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 # Imports
-import os, sys, md5, time, sqlite3, thread
+import os, sys, time, sqlite3, thread
+import hashlib as md5
 from threading import RLock
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet import reactor, defer, threads
@@ -16,8 +17,6 @@ from twisted.logger import Logger
 SLVE = 'SLAVE'
 MSTR = 'MASTER'
 
-# initialise logging
-log = Logger()
 
 #
 # DB class
@@ -35,6 +34,8 @@ class DB:
     INSERTSENSID = "INSERT INTO sensor (sensor_id, type, name) " \
                    "values ('%s', '%s', '%s' )"
     DELETEGTID = "DELETE FROM %s WHERE %s_id > %s"
+
+    log = Logger()
 
     #
     # Initialise
@@ -91,7 +92,7 @@ class DB:
     #
     @inlineCallbacks
     def insertdatagetid(self, sdata):
-        log.debug("insertdatagetid called")
+        self.log.debug("insertdatagetid called")
         sql = self.INSERTDATA % \
               (sdata['sens_id'], sdata['val'], sdata['raw_val'], sdata['time'])
         sdata['data_id'] = yield threads.deferToThreadPool(reactor, self._dbpool.threadpool,
@@ -114,11 +115,11 @@ class DB:
     #
     def insertdatabyid(self, sdata):
         if self._peer == MSTR: return None
-        log.debug("insertdatabyid called")
+        # self.log.debug("insertdatabyid called")
         # 'YYYY-MM-DD HH:MM:SS[.fraction]'
         # sdata['time'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(sdata['time']))
+        # self.log.debug("datetime: %s" % sdata['time'])
 
-        log.debug("datetime: %s" % sdata['time'])
         sql = self.INSERTDATAID % \
               (sdata['data_id'], sdata['sens_id'], sdata['val'], sdata['raw_val'], sdata['time'])
 
@@ -145,16 +146,16 @@ class DB:
         conn = self._dbpool.connect()
         try:
             cur = conn.cursor()
-            log.debug('exe SQL: %s' % sql)
+            self.log.debug('exe: {sql}', sql=sql, system='db')
             cur.execute(sql)
             conn.commit()
             if getid:
                 ret = cur.lastrowid
         except sqlite3.OperationalError, e:
-            log.error("Error - Op Err, e: %s" % e)
+            self.log.error("Error - Op Err, e: %s" % e)
             ret = False
         except Exception, e:
-            log.error('Error executing sql. e:%s' % e)
+            self.log.error('Error executing sql. e:%s' % e)
             ret = False
 
         # Release lock and connection
@@ -168,7 +169,7 @@ class DB:
     #
     def deltblgtid(self, tbl, rowid):
         if self._peer == MSTR:
-            log.debug('wont delete db data from master')
+            self.log.debug('wont delete db data from master. tbl: {tbl}', tbl=tbl, system='db')
             return
         sql = self.DELETEGTID % (tbl, tbl, rowid)
         return threads.deferToThreadPool(reactor, self._dbpool.threadpool,
@@ -197,6 +198,7 @@ class DB:
     #
     # TODO: Move this out of here, it's not a DB function
     def mkmd5csum(self, data):
+        # log.debug(data, system='db')
         return md5.md5(str(data)).hexdigest()
 
     #
@@ -222,16 +224,17 @@ class DB:
         d.addCallback(self.mktxcsumstr, tbl, rowid)
         d.addCallback(display)
 
+
 #
 # Sqlite3 superclass
 #
 class SQLite3DB(DB):
+    log = Logger()
 
     def __init__(self, dbpath, peer_type):
         DB.__init__(self, dbpath, peer_type)
         self._dbpool = adbapi.ConnectionPool("sqlite3", self._dbpath)
-        self._dbpool.noisy = True  # True - for noisy debug
-        log = Logger()
+        self._dbpool.noisy = False  # True - for noisy debug
 
     #
     # Sqlite3 DB init
@@ -247,7 +250,7 @@ class SQLite3DB(DB):
     def _execute(self, sql):
         ret = None
         self._dblock.acquire()
-        log.debug('exe SQL: %s' % sql)
+        self.log.debug("exe: {sql}", sql=sql, system="sql3")
         try:
             conn = self._dbpool.connect()
             cur = conn.cursor()
@@ -255,20 +258,20 @@ class SQLite3DB(DB):
             conn.commit()
             ret = cur.fetchall()
         except sqlite3.OperationalError, e:
-            log.error("Error - OpErr, e: %s" % e)
+            self.log.error("Error - OpErr, e:{e}", e=e, system='sql3')
         except Exception, e:
-            log.error('Error - unknown exception executing sql. e:%s' % e)
+            self.log.error('Error - unknown exception executing sql. e:{e}', e=e, system='sql3')
         self._dbpool.disconnect(conn)
         self._dblock.release()
         if ret:
             return ret
-        else:
-            raise e
+
 
 #
 # MySQL superclass
 #
 class MySQLDB(DB):
+    log = Logger()
 
     def __init__(self, dbpath, peer_type):
         DB.__init__(self, dbpath, peer_type)
@@ -287,8 +290,9 @@ class MySQLDB(DB):
     #
     def _execute(self, sql):
         ret = None
+        cur = None
         self._dblock.acquire()
-        log.debug('exe SQL: %s' % sql)
+        self.log.debug('exe: {sql}', sql=sql, system='mysql')
         try:
             conn = self._dbpool.connect()
             cur = conn.cursor()
@@ -296,8 +300,9 @@ class MySQLDB(DB):
             ret = cur.fetchall()
             conn.commit()
         except Exception, e:
-            log.error('Error - unknown exception executing sql. e:%s' % e)
-        cur.close()
+            self.log.error('Error - unknown exception executing sql. e={e}', e=e, system='mysql')
+        if cur is not None:
+            cur.close()
         self._dbpool.disconnect(conn)
         self._dblock.release()
         return ret
