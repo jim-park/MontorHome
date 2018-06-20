@@ -1,0 +1,9 @@
+#
+# Build python libmh wheel
+#
+
+# create python wheel locally from sources
+- name: build libmh python egg
+  local_action: command /usr/bin/python setup.py bdist_wheel
+  args:
+    chdir: "./../libmh"

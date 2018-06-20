@@ -114,11 +114,14 @@
       apt:
           name: python-openssl
  
-    # Finally ... pip
+    # Pip
     - name: Install python-pip package
       apt:  
         name: python-pip
 
+    # Finally ...  Install libmh wheel
+    - name: install libmh wheel on remote
+      import_tasks: inst_libmh_wheel
 
     #
     # Configure SSH login to be keys only
@@ -134,8 +137,3 @@
     - name: Restart ssh
       service: name=ssh state=restarted
 
-#
-# Include play to build and install Montorhome apps & libs
-#
-- name: Include libmh play
-  import_playbook: build_inst_libmh.yml

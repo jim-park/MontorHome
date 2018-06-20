@@ -1,0 +1,22 @@
+#
+# Install and run client process
+#
+
+- hosts: helga
+  tasks:
+
+    # Copy client executable
+    - name: copy client.tac to remote
+      become: yes
+      become_user: mh
+      copy:
+        src: /home/user1/Montorhome/mh_project/raspi/client.tac
+        dest: /opt/mh/bin/
+
+    # Restart client process using supervisord
+    - name: restart client process
+      become: yes
+      supervisorctl:
+        name: client
+        state: restarted
+

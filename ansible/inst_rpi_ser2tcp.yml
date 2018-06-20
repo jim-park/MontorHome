@@ -1,0 +1,21 @@
+#
+# Install and run ser2tcp process
+#
+
+- hosts: helga
+  tasks:
+
+    # Copy ser2tcp executable
+    - name: copy ser2tcp.tac to remote
+      become: yes
+      become_user: mh
+      copy:
+        src: /home/user1/Montorhome/mh_project/raspi/ser2tcp.tac
+        dest: /opt/mh/bin/
+
+    # Restart ser2tcp process using supervisord
+    - name: restart ser2tcp process
+      become: yes
+      supervisorctl:
+        name: ser2tcp
+        state: restarted

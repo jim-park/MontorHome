@@ -1,0 +1,44 @@
+#
+# Build and install python libmh wheel
+#
+
+# create python wheel locally from sources
+- name: include libmh build
+  include_task: build_libmh_wheel.yml
+
+# get file name of wheel
+- name: get wheel filename
+  local_action: shell find ./../libmh -name *.whl -type f -printf "%f\n"
+  register: find
+#- debug: var=find.stdout_lines[0]
+
+# copy python wheel to target
+- name: copy libmh wheel to remote
+  become: yes
+  become_user: mh
+  copy:
+    src: "./../libmh/dist/{{ find.stdout_lines[0] }}"
+    dest: /tmp/
+
+# determine if this is a clean install
+- name: Check if libmh is already installed
+  stat:
+    path: /usr/lib/python2.7/dist-packages/libmh
+  register: stat_libmh_result
+
+# full install egg on target
+- name: do full install libmh wheel on target (including dependencies)
+  become: yes
+  command: /usr/bin/pip2 install --target /usr/lib/python2.7/dist-packages/ /tmp/{{ find.stdout_lines[0] }}
+  when: stat_libmh_result.stat.isdir == False
+
+# skinny install egg on target
+- name: install libmh wheel only on target (no dependencies)
+  become: yes
+  command: /usr/bin/pip2 install
+          --no-deps
+          --force-reinstall
+          --upgrade
+          --target /usr/lib/python2.7/dist-packages/
+          /tmp/{{ find.stdout_lines[0] }}
+  when: stat_libmh_result.stat.isdir == True

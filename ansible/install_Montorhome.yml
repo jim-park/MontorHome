@@ -1,3 +1,7 @@
+#
+# Install all files required to run MontorHome
+#
+
 - hosts: helga
   vars:
       mh_dir: /opt/mh/
@@ -34,29 +38,13 @@
         src: /home/user1/Montorhome/mh_project/db/create_client_sqlite3_db.sql
         dest: /opt/mh/db/
 
-    # Copy client executable
-    - name: copy client.tac to remote
-      become: yes
-      become_user: mh 
-      copy:
-        src: /home/user1/Montorhome/mh_project/raspi/client.tac
-        dest: /opt/mh/bin/
-
-    # Copy ser2tcp executable
-    - name: copy ser2tcp.tac to remote
-      become: yes
-      become_user: mh 
-      copy:
-        src: /home/user1/Montorhome/mh_project/raspi/ser2tcp.tac
-        dest: /opt/mh/bin/
-
     # Find any running twistd processes
     - name: Get running twistd processes
       become: yes
       shell: "supervisorctl status | awk '{print $1}'"
       register: running_processes
 
-    # Stop existing client process
+    # Stop running processes (client, ser2tcp)
     - name: stop any running mh processes
       become: yes
       supervisorctl:
@@ -85,12 +73,14 @@
         src: /home/user1/Montorhome/mh_project/raspi/init/files/mh_ser2tcp_supervisor.conf
         dest: /etc/supervisor/conf.d/
 
-    # Start mh processes through supervisord
-    - name: start client process
-      become: yes
-      supervisorctl:
-        name: "{{ item }}"
-        state: restarted
-      with_items:
-        - client
-        - ser2tcp
+    # Install libmh wheel
+    - name: install libmh wheel on remote
+      import_tasks: inst_libmh_wheel
+
+    # Install client process
+    - name: install client on remote
+      import_playbook: inst_rpi_client.yml
+
+    # Install ser2tcp process
+    - name: install ser2tcp on remote
+      import_playbook: inst_rpi_ser2tcp.yml
