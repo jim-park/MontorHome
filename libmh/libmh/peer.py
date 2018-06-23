@@ -1,37 +1,35 @@
 #!/usr/bin/env python
 
 
-# Imports
-import sys, os, re, md5, time, json, thread
-from twisted.internet.defer import inlineCallbacks, returnValue
-from twisted.internet.protocol import Protocol, Factory
-from twisted.internet.endpoints import TCP4ServerEndpoint
-from twisted.internet import reactor, defer
+# System imports
+import json
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet import defer
 from twisted.protocols.basic import LineReceiver
-from twisted.enterprise import adbapi
-# from twisted.python import Logger
 from twisted.logger import Logger
 
-# Custom imports
-from db import DB
+# Libmh imports
+from libmh import MSTR, SLVE, CLNT, SERV
+from libmh.db import DB
 
-# Dubious Globals
-# TODO: move many of these into a file
-
+# TODO: move many of these dubious globals into a file
 # Client credentials
 ID = "0"
 PW = "iw9foj5ojv4dg2vd"
 
 # Srv details
-TABLES = ['data', 'sensor']
+TABLES = ['sensor']
+# TABLES = ['data', 'sensor']
+TBLS = {'sensor':
+           {'tblmstr': SERV,
+            'active': True
+            },
+        'data':
+           {'tblmstr': CLNT,
+            'active': True
+            }
+        }
 CLIENTS = [{"0": PW}]
-
-# Define slave / master tags
-SLVE = 'SLAVE'
-MSTR = 'MASTER'
-
-# initialise logging
-# log = Logger()
 
 
 #
@@ -169,14 +167,23 @@ class Peer(LineReceiver):
 
         def tblsync(sync, tbl, rowid):
             if sync:
+                # We've rxd a remote check sum which is good, upto a point (rowid).
+
+                # If this is a slaved table, then the table is upto date.
+                # No further action required
+
+                # If this is a master table, we've probably got data beyond the
+                # rowid rxd, to send to the remote.
                 self._state = 'idle'
-                if self._typ == SLVE:
+                # if self._typ == SLVE:
+                for tbl in TBLS.keys():
+                    if
                     self._txjson({tbl: "%s %s" % (True, rowid)}, self.CSUM)
                     self._db.deltblgtid(tbl, rowid)
-                else:
-                    d = self._db.selectgte(tbl, rowid)
-                    # d.addCallback(display)
-                    d.addCallback(sendselect, tbl)
+                # else:
+                #     d = self._db.selectgte(tbl, rowid)
+                #     # d.addCallback(display)
+                #     d.addCallback(sendselect, tbl)
 
                 return sync
 
@@ -189,13 +196,15 @@ class Peer(LineReceiver):
 
         # Function starts here
         for tbl in msg.data:
+            # Get the remote check sum
             rcsum = msg.data[tbl].split()[0]
-            rowid = msg.data[tbl].split()[1]
-            rowid = int(rowid)
+            # Get the row id this check sum was generated up to
+            rowid = int(msg.data[tbl].split()[1])
+            # Log it
             self.log.debug('tbl: {tbl}, rcsum: {rcsum} rowid: {rowid}', tbl=tbl, rcsum=rcsum, rowid=rowid, system='peer')
 
             if rcsum == 'True':
-                # We have positive checksum confirmation
+                # Remote has replied to our check sum, and is upto date to the row id we sent.
                 self.log.debug('tbl: {tbl}, synced ok to rowid: {rowid}', tbl=tbl, rowid=rowid, system='peer')
                 if self._typ == MSTR:
                     d = defer.Deferred()
@@ -204,7 +213,10 @@ class Peer(LineReceiver):
                     d.addCallback(sendselect, tbl)
                 break
 
-            d = defer.Deferred()
+            # We need to generate a local check sum for the,
+            # table specified, using data up to the row id we rxd.
+            # Then we compare the local and rxd csums.
+            # d = defer.Deferred()
             d = self._db.selectlte(tbl, rowid)
             d.addCallback(self._db.mkmd5csum)
             # If cmpcsums fails, we enter into dbsync.

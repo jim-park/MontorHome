@@ -9,26 +9,22 @@
 #
 #######################################################################
 
-# Imports
-import sys, os, json, time, re
+# System imports
+import json
 from OpenSSL import SSL
-
 from twisted.internet import reactor, defer, ssl
-from twisted.internet.protocol import Protocol, ClientFactory
+from twisted.internet.protocol import Protocol
 from twisted.internet.protocol import Factory
 from twisted.internet.protocol import ReconnectingClientFactory as RCFactory
-from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 from twisted.internet.endpoints import TCP4ServerEndpoint
-from twisted.internet.defer import inlineCallbacks
-from twisted.protocols.basic import LineReceiver
 from twisted.application import service
-# from twisted.python import log
 from twisted.logger import Logger
 from twisted.python.log import ILogObserver
 
-# Local imports
-from libmh.peer import Peer, Msg, MSTR
+# Libmh imports
+from libmh import MSTR
 from libmh.db import SQLite3DB
+from libmh.peer import Peer
 from libmh.mhlog import mhlogger
 
 # Globals
@@ -60,6 +56,7 @@ getter = None  # getter for message q
 # return dict of sensor data
 #
 def extractJSONSensorData(jsonstr):
+    log = Logger()
     ret = {}
     # {"sensor":[{"id":"0","val":"498","time":"1495833550"}]}
     try:
@@ -72,7 +69,7 @@ def extractJSONSensorData(jsonstr):
         ret['val'] = round(float(int(ret['raw_val']) / CON_FACTOR), 3)
     except Exception, e:
         ret = None
-        msg.err("Error: can't decode sensor data. Data ignored")
+        log.error("Error: can't decode sensor data. Data ignored", system='extjsondata')
         # log("Error: e=%s" % e)
     return ret
 
@@ -82,11 +79,12 @@ def extractJSONSensorData(jsonstr):
 # returns json string if ok
 #
 def chklinecsum(line):
+    log = Logger()
     ret = False
     rxcsum = int(line.split(' ')[1], base=16)
     jsonstr = line.split(' ')[0]
     if not chk_csum(jsonstr, rxcsum):
-        log.msg("Error: simple csum failed. Data ignored")
+        log.error("Error: simple csum failed. Data ignored", system=chklinecsum)
     else:
         ret = jsonstr
     d = defer.Deferred()
@@ -111,7 +109,7 @@ def chk_csum(data, csum):
 def simpl_csum(data=None):
     ret = False
     if not data: return ret
-    ret = 0;
+    ret = 0
     for c in data:
         ret += ord(c)
     return ret & 0xFF
@@ -149,18 +147,18 @@ class txDataFactory(RCFactory):
         p = Peer(self, PEER_TYPE, self.db)
         p.factory = self
         self.resetDelay()
-        self.log.debug("connected to app server {addr}", addr=addr, system='txdata')
+        self.log.debug("connected to app server {addr}", addr=addr, system='clienttx')
         self.protocol.connected = 1
         return p
 
     def clientConnectionFailed(self, connector, reason):
         RCFactory.clientConnectionFailed(self, connector, reason)
-        self.log.warn(_stuff="conn to appsrv failed", _why=reason, system='txdata')
+        self.log.warn(_stuff="conn to appsrv failed", _why=reason, system='clienttx')
         self.protocol = None
 
     def clientConnectionLost(self, connector, reason):
         RCFactory.clientConnectionLost(self, connector, reason)
-        self.log.error(_stuff="conn to appsrv lost", _why=reason, system='txdata')
+        self.log.error(_stuff="conn to appsrv lost", _why=reason, system='clienttx')
         self.protocol = None
 
     # Send data onto peer
@@ -206,6 +204,7 @@ class rxDataProt(Protocol):
 #
 class rxDataFactory(Factory):
     protocol = rxDataProt
+    log = Logger()
 
     def __init__(self):
         self._db = SQLite3DB(DBPATH, PEER_TYPE)
@@ -225,7 +224,7 @@ class AppServerTCPTXService(service.Service):
     log = Logger()
 
     def startService(self):
-        self.log.info("starting AppServerTCPTXService")
+        self.log.info("starting AppServerTCPTXService", system="client")
         reactor.connectSSL(APPSRV, APPSRV_PORT, txDataFactory(), clientSSLCtxFactory())
 
     # def stopService(self):
@@ -243,7 +242,7 @@ class Ser2TCPDataRXService(service.Service):
         self.tx_factory = None
 
     def startService(self):
-        self.log.info("starting Ser2TCPDataRXService")
+        self.log.info("starting Ser2TCPDataRXService", system="ser2tcp listener")
         p = TCP4ServerEndpoint(reactor, LISTEN_PORT)
         p.listen(rxDataFactory())
 

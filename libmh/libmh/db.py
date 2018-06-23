@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 
 # Imports
-import os, sys, time, sqlite3, thread
+import os
+import sqlite3
 import hashlib as md5
 from threading import RLock
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet import reactor, defer, threads
 from twisted.enterprise import adbapi
-from twisted.python import threadpool
 from twisted.logger import Logger
 
 # Local imports
 # TODO: Fix this import
-# from Peer import SLVE, MSTR
+from libmh import MSTR
 # Because the above import don't work...define slave / master tags
-SLVE = 'SLAVE'
-MSTR = 'MASTER'
+# SLVE = 'SLAVE'
+# MSTR = 'MASTER'
 
 
 #
@@ -249,6 +249,7 @@ class SQLite3DB(DB):
     #
     def _execute(self, sql):
         ret = None
+        conn = None
         self._dblock.acquire()
         self.log.debug("exe: {sql}", sql=sql, system="sql3")
         try:
@@ -261,7 +262,8 @@ class SQLite3DB(DB):
             self.log.error("Error - OpErr, e:{e}", e=e, system='sql3')
         except Exception, e:
             self.log.error('Error - unknown exception executing sql. e:{e}', e=e, system='sql3')
-        self._dbpool.disconnect(conn)
+        if conn is not None:
+            self._dbpool.disconnect(conn)
         self._dblock.release()
         if ret:
             return ret
@@ -275,7 +277,8 @@ class MySQLDB(DB):
 
     def __init__(self, dbpath, peer_type):
         DB.__init__(self, dbpath, peer_type)
-        self._dbpool = adbapi.ConnectionPool("mysql.connector", user='mh_db_user', password='app_srv0HFY',
+        self._dbpool = adbapi.ConnectionPool("mysql.connector", user='mh_db_user',
+                                                                password='app_srv0HFY',
                                                                 host='127.0.0.1',
                                                                 database='mh_data')
 

@@ -1,5 +1,4 @@
-from twisted.application.service import Application
-from twisted.python.log import ILogObserver, FileLogObserver
+from twisted.python.log import FileLogObserver
 from twisted.python.logfile import DailyLogFile
 from datetime import datetime
 
