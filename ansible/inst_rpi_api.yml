@@ -1,0 +1,29 @@
+#
+# Install and run Python Flask API process
+#
+
+- hosts: helga
+  tasks:
+
+    # Copy API executable
+    - name: copy api.py to remote
+      become: yes
+      become_user: mh
+      copy:
+        src: ../raspi/api.py
+        dest: /opt/mh/bin/
+
+    # Copy TracerBN driver
+    - name: copy tracerbn.py to remote
+      become: yes
+      become_user: mh
+      copy:
+        src: ../raspi/tracerbn.py
+        dest: /opt/mh/bin/
+
+    # Restart api process using supervisord
+    - name: restart api process
+      become: yes
+      supervisorctl:
+        name: api
+        state: restarted

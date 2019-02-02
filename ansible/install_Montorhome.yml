@@ -16,35 +16,22 @@
         group: mh
       with_items:
         - ['bin', 'db', 'log', 'run', 'keys']
-
-    # Copy keys
-    - name: copy client ssl keys
-      # Requires 2 lines ansible.cnf
-      # allow_world_readable_tmpfiles = True
-      # pipelining = True
-      become: yes
-      become_user: mh 
-      copy:
-        src: /home/user1/Montorhome/keys/{{ item }}
-        dest: /opt/mh/keys/
-      with_items:
-        - ['clnt_key.pem', 'cert.pem']
     
     # Copy sqlite3 DB init script
     - name: copy sqlite3 DB init script
       become: yes
       become_user: mh 
       copy:
-        src: /home/user1/Montorhome/mh_project/db/create_client_sqlite3_db.sql
-        dest: /opt/mh/db/
+        src: ../db/create_client_sqlite3_db.sql
+        dest: "{{  mh_dir  }}db/"
 
-    # Find any running twistd processes
-    - name: Get running twistd processes
+    # Find any running flask processes
+    - name: Get running Python Flask processes
       become: yes
       shell: "supervisorctl status | awk '{print $1}'"
       register: running_processes
 
-    # Stop running processes (client, ser2tcp)
+    # Stop running process(es) (api)
     - name: stop any running mh processes
       become: yes
       supervisorctl:
@@ -52,35 +39,16 @@
         state: stopped
       with_items: "{{ running_processes.stdout_lines }}"
 
-    # Setup DB using init script    
-    # TODO: check return value
-    - name: Initialise sqlite3 DB
-      become: yes
-      become_user: mh
-      command: sqlite3 -init /opt/mh/db/create_client_sqlite3_db.sql /opt/mh/db/data.db
+    # TODO: Setup DB using init script
+    #- name: Initialise sqlite3 DB
+    #  become: yes
+    #  become_user: mh
+    #  command: sqlite3 -init /opt/mh/db/create_client_sqlite3_db.sql /opt/mh/db/data.db
 
-    # Copy supervisord client configuration file
-    - name: copy supervisord client configuration file to host
-      become: yes
-      copy:
-        src: /home/user1/Montorhome/mh_project/raspi/init/files/mh_client_supervisor.conf
-        dest: /etc/supervisor/conf.d/
-
-    # Copy supervisord ser2tcp configuration file
-    - name: copy supervisord ser2tcp configuration file to host
+    # Copy api configuration file
+    - name: copy supervisord Flask API configuration file to host
       become: yes
       copy:
-        src: /home/user1/Montorhome/mh_project/raspi/init/files/mh_ser2tcp_supervisor.conf
+        src: ../raspi/init/files/mh_api_supervisor.conf
         dest: /etc/supervisor/conf.d/
 
-    # Install libmh wheel
-    - name: install libmh wheel on remote
-      import_tasks: inst_libmh_wheel
-
-    # Install client process
-    - name: install client on remote
-      import_playbook: inst_rpi_client.yml
-
-    # Install ser2tcp process
-    - name: install ser2tcp on remote
-      import_playbook: inst_rpi_ser2tcp.yml
