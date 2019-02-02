@@ -37,6 +37,7 @@ public class FetchDataTask extends AsyncTask<String, Void, FetchDataTask.Wrapper
         try {
             URL url = new URL(API_URL + params[0]);
             Log.i("INFO", "URL: " + url);
+            wrapper.type = params[0];
 
             HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
             try {
@@ -49,7 +50,6 @@ public class FetchDataTask extends AsyncTask<String, Void, FetchDataTask.Wrapper
                 }
                 bufferReader.close();
                 wrapper.data = stringBuilder.toString();
-                wrapper.type = params[0];
                 return wrapper;
             }
             finally {
@@ -58,7 +58,8 @@ public class FetchDataTask extends AsyncTask<String, Void, FetchDataTask.Wrapper
         }
         catch (Exception e) {
             Log.e("ERROR", e.getMessage());
-            return null;
+            wrapper.data = "none";
+            return wrapper;
         }
 
     }

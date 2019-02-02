@@ -47,49 +47,13 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         setSupportActionBar(toolbar);
 
         /*
-        /   Fetch Battery related data
+        /   Fetch and display remote instrumentation data
         */
-        // Battery Voltage
-        FetchDataTask fetchBattVoltageTask =new FetchDataTask(this);
-        fetchBattVoltageTask.execute("batt_voltage");
-
-        // Battery Current
-        FetchDataTask fetchBattCurrTask =new FetchDataTask(this);
-        fetchBattCurrTask.execute("batt_current");
-
-        // Battery Temperature
-        FetchDataTask fetchBattTempTask =new FetchDataTask(this);
-        fetchBattTempTask.execute("batt_temp");
-
-        /*
-         * Fetch PV related data
-         */
-        // PV Voltage
-        FetchDataTask fetchPVVoltageTask =new FetchDataTask(this);
-        fetchPVVoltageTask.execute("pv_voltage");
-
-        // PV Current
-        FetchDataTask fetchPVCurrentTask =new FetchDataTask(this);
-        fetchPVCurrentTask.execute("pv_current");
-
-        // PV Power
-        FetchDataTask fetchPVPowerTask =new FetchDataTask(this);
-        fetchPVPowerTask.execute("pv_power");
-
-        /*
-         * Fetch load related data
-         */
-        // Load Voltage
-        FetchDataTask fetchLoadVoltageTask =new FetchDataTask(this);
-        fetchLoadVoltageTask.execute("load_voltage");
-
-        // Load Current
-        FetchDataTask fetchLoadCurrentTask =new FetchDataTask(this);
-        fetchLoadCurrentTask.execute("load_current");
-
-        // Load Power
-        FetchDataTask fetchLoadPowerTask =new FetchDataTask(this);
-        fetchLoadPowerTask.execute("load_power");
+        for (String dataCode : dataCodes.allData) {
+            // Create and exeute a new AsyncTask for each request.
+            FetchDataTask fetchfromAPITask =new FetchDataTask(this);
+            fetchfromAPITask.execute(dataCode);
+        }
     }
 
     /*
@@ -103,28 +67,31 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         TextView dataViewId = null;
 
         switch(output.type) {
-            case "batt_voltage":
+            case dataCodes.battVoltage:
                 dataViewId = (TextView) findViewById(R.id.batt_voltage);
                 break;
-            case "batt_current":
+            case dataCodes.battCurrent:
                 dataViewId = (TextView) findViewById(R.id.batt_current);
                 break;
-            case "pv_voltage":
+            case dataCodes.battTemp:
+                dataViewId = (TextView) findViewById(R.id.batt_temp);
+                break;
+            case dataCodes.pvVoltage:
                 dataViewId = (TextView) findViewById(R.id.pv_voltage);
                 break;
-            case "pv_current":
+            case dataCodes.pvCurrent:
                 dataViewId = (TextView) findViewById(R.id.pv_current);
                 break;
-            case "pv_power":
+            case dataCodes.pvPower:
                 dataViewId = (TextView) findViewById(R.id.pv_power);
                 break;
-            case "load_voltage":
+            case dataCodes.loadVoltage:
                 dataViewId = (TextView) findViewById(R.id.load_voltage);
                 break;
-            case "load_current":
+            case dataCodes.loadCurrent:
                 dataViewId = (TextView) findViewById(R.id.load_current);
                 break;
-            case "load_power":
+            case dataCodes.loadPower:
                 dataViewId = (TextView) findViewById(R.id.load_power);
                 break;
         }
@@ -133,6 +100,24 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         }
     }
 
+    /*
+     * Static data structure for names of parameters
+     */
+    public final static class dataCodes {
+        final static String battVoltage = "batt_voltage";
+        final static String battCurrent = "batt_current";
+        final static String battTemp = "batt_temperature";
+        final static String pvVoltage = "pv_voltage";
+        final static String pvCurrent = "pv_current";
+        final static String pvPower = "pv_power";
+        final static String loadVoltage = "load_voltage";
+        final static String loadCurrent = "load_current";
+        final static String loadPower = "load_power";
+
+        final static String[] allData = {dataCodes.battVoltage, dataCodes.battCurrent, dataCodes.battTemp,
+                dataCodes.pvVoltage, dataCodes.pvCurrent, dataCodes.pvPower,
+                dataCodes.loadVoltage, dataCodes.loadCurrent, dataCodes.loadPower};
+    }
 
     /*
      * Deal with a change in orientation
