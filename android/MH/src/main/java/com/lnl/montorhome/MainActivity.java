@@ -8,12 +8,15 @@ import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
+
 import com.lnl.montorhome.FetchDataTask.AsyncResponse;
 
 public class MainActivity extends AppCompatActivity implements AsyncResponse {
@@ -31,27 +34,19 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         // Set Content View
         setContentView(R.layout.activity_main);
 
-        // Setup Preference Change Listener
-        try {
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-            SharedPreferences.OnSharedPreferenceChangeListener listener = new PreferenceChangeListener();
-            prefs.registerOnSharedPreferenceChangeListener(listener);
-            Log.i(TAG, "Started preferences change listener." + listener.toString());
-            Log.i(TAG, "app_server_addr: " + prefs.getString("key_app_server_addr", "key not found"));
-        } catch(Exception e) {
-            Log.e(TAG, "Failed to start preferences change listener. e: " + e.toString());
-        }
+        // Setup Preferences and Preference Change Listener
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext());
 
         // Setup Action Bar
         Toolbar toolbar = (Toolbar) findViewById(R.id.my_toolbar);
         setSupportActionBar(toolbar);
 
         /*
-        /   Fetch and display remote instrumentation data
+        /   Initialise data display - fetch and display remote instrumentation data
         */
         for (String dataCode : dataCodes.allData) {
             // Create and exeute a new AsyncTask for each request.
-            FetchDataTask fetchfromAPITask =new FetchDataTask(this);
+            FetchDataTask fetchfromAPITask =new FetchDataTask(MainActivity.this);
             fetchfromAPITask.execute(dataCode);
         }
     }
@@ -96,12 +91,29 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
                 break;
         }
         if(dataViewId != null) {
-            dataViewId.setText(output.data);
+            // Format output string to 2dp
+            dataViewId.setText( String.format("%.2f", Float.parseFloat(output.data)) );
         }
+
+
+        /*
+            Refresh button listener
+         */
+        Button button = (Button) findViewById(R.id.refresh_button);
+        button.setOnClickListener(new View.OnClickListener() {
+        public void onClick(View v) {
+                //   Fetch and display remote instrumentation data
+                for (String dataCode : dataCodes.allData) {
+                    // Create and exeute a new AsyncTask for each request.
+                    FetchDataTask fetchfromAPITask =new FetchDataTask(MainActivity.this);
+                    fetchfromAPITask.execute(dataCode);
+                }
+            }
+        });
     }
 
     /*
-     * Static data structure for names of parameters
+     * Static data structure for names of api call parameters
      */
     public final static class dataCodes {
         final static String battVoltage = "batt_voltage";
@@ -125,7 +137,6 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     @Override
     public void onConfigurationChanged(Configuration config) {
         super.onConfigurationChanged(config);
-        Log.i(TAG, "onConfugurationChanged: Called");
 
         final Fragment fragmentBSV = getFragmentManager().findFragmentById(R.id.basestatsView);
         FragmentTransaction ft = getFragmentManager().beginTransaction();
@@ -141,7 +152,6 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
             ft.commit();
             getSupportActionBar().show();
         }
-        Log.i(TAG, "onConfugurationChanged: Exiting");
     }
 
     /*
@@ -163,26 +173,11 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.action_settings:
-                Intent prefs = new Intent(this, SettingsActivity.class);
+                Intent prefs = new Intent(this.getApplicationContext(), SettingsActivity.class);
                 startActivity(prefs);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
-        }
-    }
-
-    /*
-     * Wrapper for SharedPreferences.OnSharedPreferenceChangeListener
-     */
-    private class PreferenceChangeListener implements SharedPreferences.OnSharedPreferenceChangeListener {
-
-        @Override
-        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-            Log.i(TAG, "onSharedPreferenceChanged called, key: " + key);
-
-            if (key.equals("key_app_server_addr")) {
-                Log.i(TAG, "key_app_server_addr: " + key);
-            }
         }
     }
 }

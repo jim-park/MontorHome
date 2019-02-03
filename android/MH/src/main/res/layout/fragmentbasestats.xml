@@ -52,9 +52,6 @@
                 android:text="V"
                 android:textSize="18sp"
                 android:textStyle="bold" />
-        </TableRow>
-
-        <TableRow>
 
             <TextView
                 android:id="@+id/batt_current"
@@ -77,9 +74,6 @@
                 android:text="A"
                 android:textSize="18sp"
                 android:textStyle="bold" />
-        </TableRow>
-
-        <TableRow>
 
             <TextView
                 android:id="@+id/batt_temp"
@@ -146,9 +140,6 @@
                 android:text="V"
                 android:textSize="18sp"
                 android:textStyle="bold" />
-        </TableRow>
-
-        <TableRow>
 
             <TextView
                 android:id="@+id/pv_current"
@@ -171,10 +162,6 @@
                 android:text="A"
                 android:textSize="18sp"
                 android:textStyle="bold" />
-        </TableRow>
-
-
-        <TableRow>
 
             <TextView
                 android:id="@+id/pv_power"
@@ -241,9 +228,6 @@
                 android:text="V"
                 android:textSize="18sp"
                 android:textStyle="bold" />
-        </TableRow>
-
-        <TableRow>
 
             <TextView
                 android:id="@+id/load_current"
@@ -266,9 +250,6 @@
                 android:text="A"
                 android:textSize="18sp"
                 android:textStyle="bold" />
-        </TableRow>
-
-        <TableRow>
 
             <TextView
                 android:id="@+id/load_power"
@@ -292,11 +273,25 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
         </TableRow>
+
+
+
+        <TableRow>
+
+            <Button
+                android:id="@+id/refresh_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Refresh" />
+        </TableRow>
+
     </TableLayout>
 
     <Space
         android:layout_width="match_parent"
         android:layout_height="400px"
         android:layout_weight="1" />
+
 
 </LinearLayout>

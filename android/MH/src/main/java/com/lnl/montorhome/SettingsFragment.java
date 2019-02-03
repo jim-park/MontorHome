@@ -16,20 +16,9 @@ public class SettingsFragment extends PreferenceFragment {
         super.onCreate(savedInstanceState);
 
         Log.d(TAG, "onCreeate called");
-        // Load the preferences from an XML resource
+        // Load the preferences from XML resource
         addPreferencesFromResource(R.xml.preferences);
 
 //        getFragmentManager().beginTransaction().replace(android.R.id.content, new SettingsFragment()).commit();
     }
-
-    /*
-    public static class MyPreferenceFragment extends PreferenceFragment {
-
-        @Override
-        public void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-            addPreferencesFromResource(R.xml.preferences);
-        }
-    }
-    */
 }
