@@ -31,7 +31,7 @@
 #define UART_TBIT           (1000000 / 9600)
 
 //------------------------------------------------------------------------------
-// Sample parameters
+// Sampling parameters
 //------------------------------------------------------------------------------
 #define SAMP_NUM 8
 
@@ -54,7 +54,6 @@ void Clock_init(void);
 void TimerA_UART_init(void);
 void TimerA_UART_tx(unsigned char byte);
 void TimerA_UART_print(char *string);
-
 
 //------------------------------------------------------------------------------
 // main
@@ -102,7 +101,7 @@ int main(void)
 }
 
 //------------------------------------------------------------------------------
-// Flash LED - Turn on and Pin 1.6
+// Flash LED - Turn on and off Pin 1.6 for 0.5 secs.
 //------------------------------------------------------------------------------
 void flash_p16(void)
 {
@@ -112,7 +111,7 @@ void flash_p16(void)
 }
 
 //------------------------------------------------------------------------------
-// Send 'sample' over UART
+// Send 'sample' over UART.
 //------------------------------------------------------------------------------
 void send_sample(unsigned int * sample)
 {
@@ -138,7 +137,7 @@ void send_sample(unsigned int * sample)
 }
 
 //------------------------------------------------------------------------------
-// calculate a simple csum of the data to send with the data
+// Calculate a simple csum of the data to send with the data.
 //------------------------------------------------------------------------------
 unsigned int csum(char * str)
 {
@@ -152,7 +151,7 @@ unsigned int csum(char * str)
 }
 
 //------------------------------------------------------------------------------
-// Sample using the ADC10 and place result in 'sample' 
+// Sample using the ADC10 and place result in 'sample'.
 //------------------------------------------------------------------------------
 void acquire_sample(unsigned int * sample)
 {
@@ -171,7 +170,7 @@ void acquire_sample(unsigned int * sample)
 }
 
 //------------------------------------------------------------------------------
-// Initialise ADC10 - use channel 7, Pin 1.7
+// Initialise ADC10 - use channel 7, Pin 1.7.
 //------------------------------------------------------------------------------
 void ADC10_init(void)
 {
@@ -181,8 +180,9 @@ void ADC10_init(void)
 
 
 //------------------------------------------------------------------------------
-// Initialise GPIO - Pins 1.1(tx) & 1.2(rx) for UART use,
-// Pin 1.7 for ADC10 sampling 
+// Initialise GPIO
+// P1.1(tx) & P1.2(rx) for UART use,
+// P1.7 for ADC10 sampling.
 //------------------------------------------------------------------------------
 void GPIO_init(void)
 {
@@ -196,7 +196,7 @@ void GPIO_init(void)
 
 
 //------------------------------------------------------------------------------
-// Initialise clock to 1 Mhz, disable watchdog
+// Initialise clock to 1 Mhz, disable watchdog.
 //------------------------------------------------------------------------------
 void Clock_init(void)
 {
@@ -208,9 +208,8 @@ void Clock_init(void)
     DCOCTL = CALDCO_1MHZ;
 }
 
-
 //------------------------------------------------------------------------------
-// Function configures Timer_A for full-duplex UART operation
+// Configure Timer_A for full-duplex UART operation.
 //------------------------------------------------------------------------------
 void TimerA_UART_init(void)
 {
@@ -220,7 +219,7 @@ void TimerA_UART_init(void)
 }
 
 //------------------------------------------------------------------------------
-// Outputs one byte using the Timer_A UART
+// Output one byte using the Timer_A UART.
 //------------------------------------------------------------------------------
 void TimerA_UART_tx(unsigned char byte)
 {
@@ -234,7 +233,7 @@ void TimerA_UART_tx(unsigned char byte)
 }
 
 //------------------------------------------------------------------------------
-// Prints a string over using the Timer_A UART
+// Tx a string over UART using the Timer_A.
 //------------------------------------------------------------------------------
 void TimerA_UART_print(char *string)
 {
@@ -244,7 +243,7 @@ void TimerA_UART_print(char *string)
 }
 
 //------------------------------------------------------------------------------
-// Timer_A UART - Transmit Interrupt Handler
+// Timer_A UART - Transmit Interrupt Handler.
 //------------------------------------------------------------------------------
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector = TIMERA0_VECTOR
@@ -275,7 +274,7 @@ void __attribute__ ((interrupt(TIMERA0_VECTOR))) Timer_A0_ISR (void)
 }
 
 //------------------------------------------------------------------------------
-// Timer_A UART - Receive Interrupt Handler
+// Timer_A UART - Receive Interrupt Handler.
 //------------------------------------------------------------------------------
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector = TIMERA1_VECTOR

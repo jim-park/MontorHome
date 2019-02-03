@@ -1,8 +1,0 @@
-
-To compile
-> msp430-gcc -mmcu=msp430g2231 -o msp430_sample.bin startup.c
-
-
-To Program device
->mspdebug rf2500
- > prog ./msp430_sample.bin
