@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+__author__ = "James Park"
+__email__ = "jim@linuxnetworks.co.uk"
+__license__ = "Apache License, Version 2.0"
+
+
 # Imports
 import os
 import sqlite3
@@ -13,9 +18,6 @@ from twisted.logger import Logger
 # Local imports
 # TODO: Fix this import
 from libmh import MSTR
-# Because the above import don't work...define slave / master tags
-# SLVE = 'SLAVE'
-# MSTR = 'MASTER'
 
 
 #

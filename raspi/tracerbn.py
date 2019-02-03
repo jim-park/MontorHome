@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-__author__ = "Jim Park"
+__author__ = "James Park"
 __email__ = "jim@linuxnetworks.co.uk"
 __license__ = "Apache License, Version 2.0"
 

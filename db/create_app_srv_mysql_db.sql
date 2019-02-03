@@ -1,5 +1,9 @@
 -- MySQL dump 10.13  Distrib 5.7.20, for Linux (x86_64)
 --
+-- __author__ = "James Park"
+-- __email__ = "jim@linuxnetworks.co.uk"
+-- __license__ = "Apache License, Version 2.0"
+--
 -- Host: localhost    Database: mh_data
 -- ------------------------------------------------------
 -- Server version	5.7.22-0ubuntu0.16.04.1

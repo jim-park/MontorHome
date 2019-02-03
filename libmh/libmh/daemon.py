@@ -1,7 +1,12 @@
 #!/usr/bin/env python
-     
+
+__author__ = "James Park"
+__email__ = "jim@linuxnetworks.co.uk"
+__license__ = "Apache License, Version 2.0"
+
 import sys, os, time, atexit
 from signal import SIGTERM
+
 
 class Daemon:
   """

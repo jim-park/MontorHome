@@ -10,6 +10,10 @@
 #######################################################################
 
 
+__author__ = "James Park"
+__email__ = "jim@linuxnetworks.co.uk"
+__license__ = "Apache License, Version 2.0"
+
 # System imports
 from twisted.internet.protocol import Factory
 from twisted.internet.endpoints import SSL4ServerEndpoint

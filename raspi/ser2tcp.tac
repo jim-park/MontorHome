@@ -9,6 +9,10 @@
 #
 #######################################################################
 
+__author__ = "James Park"
+__email__ = "jim@linuxnetworks.co.uk"
+__license__ = "Apache License, Version 2.0"
+
 import time, os, json
 from twisted.internet import reactor, task
 from twisted.internet.protocol import Protocol, ClientFactory

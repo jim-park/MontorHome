@@ -1,3 +1,8 @@
+--
+-- __author__ = "James Park"
+-- __email__ = "jim@linuxnetworks.co.uk"
+-- __license__ = "Apache License, Version 2.0"
+--
 PRAGMA foreign_keys=ON;
 BEGIN TRANSACTION;
 CREATE TABLE "sensor" (

@@ -1,3 +1,8 @@
+
+__author__ = "James Park"
+__email__ = "jim@linuxnetworks.co.uk"
+__license__ = "Apache License, Version 2.0"
+
 from twisted.python.log import FileLogObserver
 from twisted.python.logfile import DailyLogFile
 from datetime import datetime

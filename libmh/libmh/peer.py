@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+__author__ = "James Park"
+__email__ = "jim@linuxnetworks.co.uk"
+__license__ = "Apache License, Version 2.0"
 
 # System imports
 import json
