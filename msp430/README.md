@@ -11,4 +11,4 @@ To Program msp430 device
 
 `mspdebug rf2500`
 
-`> prog ./msp430_sample.bin`
+`> prog ./adsensors.bin`
