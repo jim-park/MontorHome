@@ -10,8 +10,8 @@ The system requires several distinct hardware components which, in-turn, require
 
 The following provides a high level description of each software component within each hardware component.
 
-## AWS - provides an API to relay data, provides a webpage to display data.
-- Data relaying is achieved using a Python Flask API. This API exists to provide a static API location for remote devices. 
+## AWS - provides an API proxy, provides a webpage to display data.
+- Data to and from the remtote installation is proxied using nginx.
 - Data is requested from and displayed by webpage as a dashboard.
 > The code for the webpage and API can found in the folders `app_srv/mhweb/` and `app_srv/api/` respectivly.
 
