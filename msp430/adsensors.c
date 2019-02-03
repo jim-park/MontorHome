@@ -1,9 +1,14 @@
 //******************************************************************************
 //
-// Sample analogue values and digitial IOs
-// Fire data over UART (USB) to PI
+// Target device is TI MSP430g2231.
+// This process responds to any char input to P1.2. Upon reception of a char;
+// the voltage at P1.7 is sampled and a json string containing the result is
+// transmitted to P1.1.
 //
-
+// __author__ = "James Park"
+// __email__ = "jim@linuxnetworks.co.uk"
+// __license__ = "Apache License, Version 2.0"
+//
 //******************************************************************************
 
 #include <msp430g2231.h>
@@ -25,8 +30,11 @@
 #define UART_TBIT_DIV_2     (1000000 / (9600 * 2))
 #define UART_TBIT           (1000000 / 9600)
 
-// Global defs
+//------------------------------------------------------------------------------
+// Sample parameters
+//------------------------------------------------------------------------------
 #define SAMP_NUM 8
+
 //------------------------------------------------------------------------------
 // Global variables used for full-duplex UART communication
 //------------------------------------------------------------------------------
@@ -108,8 +116,10 @@ void flash_p16(void)
 //------------------------------------------------------------------------------
 void send_sample(unsigned int * sample)
 {
-  /* This json message format is used, eg.. */
-  /* {"sensor":[{"id":"0", "val":"582"}, {"id":"1", "val":"542"}]} */
+  /*
+   *    This json message format is used:
+   *    {"sensor":[{"id":"0", "val":"582"}, {"id":"1", "val":"542"}]}
+   */
   char sstring[4] = "";  //buf to hold sample as str
   const char * out_str_start = "{\"sensor\":[{\"id\":\"1\",\"val\":\"";
   const char * out_str_end = "\"}]} ";
@@ -127,8 +137,9 @@ void send_sample(unsigned int * sample)
   TimerA_UART_print(tmpstr);
 }
 
-//
+//------------------------------------------------------------------------------
 // calculate a simple csum of the data to send with the data
+//------------------------------------------------------------------------------
 unsigned int csum(char * str)
 {
   short unsigned int ret = 0x0;
@@ -206,10 +217,8 @@ void TimerA_UART_init(void)
     TACCTL0 = OUT;                          // Set TXD Idle as Mark = '1'
     TACCTL1 = SCS + CM1 + CAP + CCIE;       // Sync, Neg Edge, Capture, Int
     TACTL = TASSEL_2 + MC_2;                // SMCLK, start in continuous mode
-    // Startup message
-//    TimerA_UART_print("G2231 TimerA UART\r\n");
-//    TimerA_UART_print("READY.\r\n");
 }
+
 //------------------------------------------------------------------------------
 // Outputs one byte using the Timer_A UART
 //------------------------------------------------------------------------------
@@ -233,6 +242,7 @@ void TimerA_UART_print(char *string)
         TimerA_UART_tx(*string++);
     }
 }
+
 //------------------------------------------------------------------------------
 // Timer_A UART - Transmit Interrupt Handler
 //------------------------------------------------------------------------------
@@ -263,6 +273,7 @@ void __attribute__ ((interrupt(TIMERA0_VECTOR))) Timer_A0_ISR (void)
         txBitCnt--;
     }
 }
+
 //------------------------------------------------------------------------------
 // Timer_A UART - Receive Interrupt Handler
 //------------------------------------------------------------------------------
@@ -279,26 +290,25 @@ __attribute__((interrupt(TIMERA1_VECTOR))) void Timer_A1_ISR (void)
     static unsigned char rxData = 0;
 
     switch ( TAIV ) {
-//    switch (__even_in_range(TAIV, TAIV_TAIFG)) { // Use calculated branching
-        case TAIV_TACCR1:                        // TACCR1 CCIFG - UART RX
-            TACCR1 += UART_TBIT;                 // Add Offset to CCRx
-            if (TACCTL1 & CAP) {                 // Capture mode = start bit edge
-                TACCTL1 &= ~CAP;                 // Switch capture to compare mode
-                TACCR1 += UART_TBIT_DIV_2;       // Point CCRx to middle of D0
+    case TAIV_TACCR1:                        // TACCR1 CCIFG - UART RX
+        TACCR1 += UART_TBIT;                 // Add Offset to CCRx
+        if (TACCTL1 & CAP) {                 // Capture mode = start bit edge
+            TACCTL1 &= ~CAP;                 // Switch capture to compare mode
+            TACCR1 += UART_TBIT_DIV_2;       // Point CCRx to middle of D0
+        }
+        else {
+            rxData >>= 1;
+            if (TACCTL1 & SCCI) {            // Get bit waiting in receive latch
+                rxData |= 0x80;
             }
-            else {
-                rxData >>= 1;
-                if (TACCTL1 & SCCI) {            // Get bit waiting in receive latch
-                    rxData |= 0x80;
-                }
-                rxBitCnt--;
-                if (rxBitCnt == 0) {             // All bits RXed?
-                    rxBuffer = rxData;           // Store in global variable
-                    rxBitCnt = 8;                // Re-load bit counter
-                    TACCTL1 |= CAP;              // Switch compare to capture mode
-                    __bic_SR_register_on_exit(LPM0_bits);  // Clear LPM0 bits from 0(SR)
-                }
+            rxBitCnt--;
+            if (rxBitCnt == 0) {             // All bits RXed?
+                rxBuffer = rxData;           // Store in global variable
+                rxBitCnt = 8;                // Re-load bit counter
+                TACCTL1 |= CAP;              // Switch compare to capture mode
+                __bic_SR_register_on_exit(LPM0_bits);  // Clear LPM0 bits from 0(SR)
             }
-            break;
+        }
+        break;
     }
 }
