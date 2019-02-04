@@ -52,7 +52,7 @@ public class FetchDataTask extends AsyncTask<String, Void, FetchDataTask.Wrapper
 
         try {
             // Retrieve API server address from preferences and build the url.
-            url = new URL("http://" + prefs.getString("key_api_server_addr", "NOTFOUND") + ":21001/" + params[0]);
+            url = new URL("http://" + prefs.getString("key_api_server_addr", "NOTFOUND") + params[0]);
             Log.d("INFO", "Opening URL: " + url);
             urlConnection = (HttpURLConnection) url.openConnection();
 
