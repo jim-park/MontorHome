@@ -277,6 +277,7 @@ class SQLite3DB(DB):
 class MySQLDB(DB):
     log = Logger()
 
+    # TODO: Remove hardcoded pass, it's local access anyway, so not a big deal.
     def __init__(self, dbpath, peer_type):
         DB.__init__(self, dbpath, peer_type)
         self._dbpool = adbapi.ConnectionPool("mysql.connector", user='mh_db_user',
