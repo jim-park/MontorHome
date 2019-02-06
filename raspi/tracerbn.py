@@ -6,6 +6,7 @@ __license__ = "Apache License, Version 2.0"
 
 import minimalmodbus
 import serial
+import time
 import os
 
 # Driver defaults
@@ -112,7 +113,7 @@ class TracerBN(minimalmodbus.Instrument):
         """Return the instantaneous PV voltage"""
         return self.read_register(int(0x3100), 2, 4)
 
-    # Controller related
+    # Controller Clock related
     def get_ctl_rtclock_sec(self):
         """Return the controller rtc seconds"""
         return get_low_byte(self.read_register(int(0x9013), 0, 3))
@@ -137,11 +138,31 @@ class TracerBN(minimalmodbus.Instrument):
         """Return the controller rtc year"""
         return get_high_byte(self.read_register(int(0x9015), 0, 3))
 
-    def set_ctl_rtc_clock(self, year, mon, mday, hrs, mins, secs):
+    def get_ctl_rtclock_time(self):
+        """Return the controller time as a time object"""
+        t_str = "%s %s %s %s %s %s" % (self.get_ctl_rtclock_year(),
+                                        self.get_ctl_rtclock_month(),
+                                        self.get_ctl_rtclock_day(),
+                                        self.get_ctl_rtclock_hour(),
+                                        self.get_ctl_rtclock_min(),
+                                        self.get_ctl_rtclock_sec())
+
+        return time.strptime(t_str, "%y %m %d %H %M %S")
+
+    def set_ctl_rtclock(self, year, mon, mday, hrs, mins, secs):
+        """All time registers must be written at once
+            year is a 2 digit number, not 4."""
         word0 = ((mins << 8) & 0xFF00) | secs  # mins : secs
         word1 = ((mday << 8) & 0xFF00) | hrs   # mday : hours
         word2 = ((year << 8) & 0xFF00) | mon   # year : mon
         return self.write_registers(int(0x9013), [word0, word1, word2])
+
+    def set_ctl_rtclock_localtime(self):
+        """Set the time on the tracer to localtime"""
+        t = time.localtime()
+        # We need a 2 digit year
+        year = int(time.strftime("%y", t))
+        return self.set_ctl_rtclock(year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
 
 
 # Interrogate serial ports for TracerBN device.
@@ -171,3 +192,4 @@ def find_serial_port():
     # If we haven't found a device on a port by this point,
     # raise an exception. The device cannot be found.
     raise Exception('Failed to find TracerBN on any port')
+

@@ -5,6 +5,7 @@ __email__ = "jim@linuxnetworks.co.uk"
 __license__ = "Apache License, Version 2.0"
 
 import tracerbn
+import time
 from flask import Flask
 
 app = Flask(__name__)
@@ -64,6 +65,14 @@ def load_current():
 def load_power():
     return "%s" % tracerbn.TracerBN(portname=serial_port).get_load_power()
 
+@app.route('/set_clock')
+def set_clock():
+    return "%s" % tracerbn.TracerBN(portname=serial_port).set_ctl_rtclock_localtime()
+
+@app.route('/get_clock')
+def get_clock():
+    return time.strftime("%d %m %Y %H:%M:%S", tracerbn.TracerBN(portname=serial_port).get_ctl_rtclock_time())
+
 
 if __name__ == '__main__':
 
@@ -73,3 +82,4 @@ if __name__ == '__main__':
         app.run(debug=False, port=21001, host='0.0.0.0', threaded=False)
     except Exception as e:
         print "ERROR: Exiting: %s" % e
+
