@@ -5,11 +5,16 @@ __email__ = "jim@linuxnetworks.co.uk"
 __license__ = "Apache License, Version 2.0"
 
 import minimalmodbus
+import serial
+import os
 
 # Driver defaults
-SERIAL_PORT_NAME = "/dev/ttyUSB0"
-SERIAL_BAUD_RATE = 115200
-MODBUS_ADDRESS = 1
+DEFAULT_SERIAL_PORT_NAME = "/dev/ttyUSB0"
+DEFAULT_SERIAL_BAUD_RATE = 115200
+DEFAULT_MODBUS_ADDRESS = 1
+
+# Globals
+DEV_INFO_BYTES = bytearray([0x01, 0x2b, 0x0e, 0x01, 0x00, 0x70, 0x77])  # Raw device information request
 
 
 def get_high_byte(word):
@@ -45,10 +50,17 @@ class TracerBN(minimalmodbus.Instrument):
 
     """
 
-    def __init__(self, portname=SERIAL_PORT_NAME, slaveaddress=MODBUS_ADDRESS):
+    def __init__(self, portname=DEFAULT_SERIAL_PORT_NAME, slaveaddress=DEFAULT_MODBUS_ADDRESS):
         minimalmodbus.Instrument.__init__(self, portname, slaveaddress)
         self.debug = False
-        self.serial.baudrate = SERIAL_BAUD_RATE
+        self.serial.baudrate = DEFAULT_SERIAL_BAUD_RATE
+
+        # Flush the serial buffer, before we begin
+        try:
+            while self.serial.read(1):
+                continue
+        except IOError:
+            pass
 
     # Battery related
     def get_rated_batt_voltage(self):
@@ -130,3 +142,32 @@ class TracerBN(minimalmodbus.Instrument):
         word1 = ((mday << 8) & 0xFF00) | hrs   # mday : hours
         word2 = ((year << 8) & 0xFF00) | mon   # year : mon
         return self.write_registers(int(0x9013), [word0, word1, word2])
+
+
+# Interrogate serial ports for TracerBN device.
+def find_serial_port():
+    """Return the port path once the device is identified, otherwise raise an exception"""
+
+    # This pythonic line of code creates an list of device paths (containing the
+    # string "ttyUSB") from the /dev directory.  e.g ["/dev/ttyUSB0", "/dev/ttyUSB2"]
+    ports_list = ["/dev/%s" % s for s in os.listdir('/dev') if "ttyUSB" in s]
+
+    for port in ports_list:
+
+        try:
+            with serial.Serial(port, DEFAULT_SERIAL_BAUD_RATE) as s:
+                s.write(DEV_INFO_BYTES)
+                dev_info = s.read(int(62))  # read 62 bytes of device information returned
+
+                if dev_info.find("Tracer"):
+                    print "Found TracerBN on %s" % port
+                    return port
+                else:
+                    print "A device is present at %s, but is not a TracerBN" % port
+
+        except serial.SerialException:
+            print "Failed to find device on port %s" % port
+
+    # If we haven't found a device on a port by this point,
+    # raise an exception. The device cannot be found.
+    raise Exception('Failed to find TracerBN on any port')
