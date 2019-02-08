@@ -75,6 +75,10 @@ class TracerBN(minimalmodbus.Instrument):
         """Return the instantaneous battery current"""
         return self.read_register(int(0x331B), 2, 4, signed=True)
 
+    def get_batt_power(self):
+        """Return the instantaneous charging power of the battery"""
+        return self.read_register(int(0x3106), 2, 4)
+
     def get_batt_temp(self):
         """Return the temperature from the battery temperature sensor"""
         return self.read_register(int(0x311B), 2, 4, signed=True)

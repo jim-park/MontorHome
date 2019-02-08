@@ -25,9 +25,15 @@ def batt_current():
     return "%s" % tracerbn.TracerBN(portname=serial_port).get_batt_current()
 
 
+@app.route('/batt_power')
+def batt_power():
+    return "%s" % tracerbn.TracerBN(portname=serial_port).get_batt_power()
+
+
 @app.route('/batt_temperature')
 def batt_temperature():
     return "%s" % tracerbn.TracerBN(portname=serial_port).get_batt_temp()
+
 
 
 #
@@ -65,9 +71,11 @@ def load_current():
 def load_power():
     return "%s" % tracerbn.TracerBN(portname=serial_port).get_load_power()
 
+
 @app.route('/set_clock')
 def set_clock():
     return "%s" % tracerbn.TracerBN(portname=serial_port).set_ctl_rtclock_localtime()
+
 
 @app.route('/get_clock')
 def get_clock():
