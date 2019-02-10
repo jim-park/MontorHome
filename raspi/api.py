@@ -82,6 +82,34 @@ def get_clock():
     return time.strftime("%d %m %Y %H:%M:%S", tracerbn.TracerBN(portname=serial_port).get_ctl_rtclock_time())
 
 
+#
+# Controller info
+#
+@app.route('/night_day')
+def night_or_day():
+    return "%s" % tracerbn.TracerBN(portname=serial_port).get_night_or_day()
+
+
+@app.route('/energy_total')
+def energy_total():
+    return "%s" % tracerbn.TracerBN(portname=serial_port).get_energy_total()
+
+
+@app.route('/energy_year')
+def energy_year():
+    return "%s" % tracerbn.TracerBN(portname=serial_port).get_energy_year()
+
+
+@app.route('/energy_month')
+def energy_month():
+    return "%s" % tracerbn.TracerBN(portname=serial_port).get_energy_month()
+
+
+@app.route('/energy_day')
+def energy_day():
+    return "%s" % tracerbn.TracerBN(portname=serial_port).get_energy_today()
+
+
 if __name__ == '__main__':
 
     try:

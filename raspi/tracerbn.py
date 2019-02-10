@@ -117,6 +117,35 @@ class TracerBN(minimalmodbus.Instrument):
         """Return the instantaneous PV voltage"""
         return self.read_register(int(0x3100), 2, 4)
 
+    # Controller general params
+    def get_night_or_day(self):
+        """Return night or day (1 or 0 respectively) from the controller"""
+        return self.read_bit(int(0x200C))
+
+    def get_energy_today(self):
+        """Return the energy generated today in kWHrs"""
+        low = long(self.read_register(int(0x330C), 0, 4))
+        high = long(self.read_register(int(0x330D), 0, 4))
+        return (low | (high << 8)) / 100.0
+
+    def get_energy_month(self):
+        """Return the energy generated this month in kWHrs"""
+        low = long(self.read_register(int(0x330E), 0, 4))
+        high = long(self.read_register(int(0x330F), 0, 4))
+        return (low | (high << 8)) / 100.0
+
+    def get_energy_year(self):
+        """Return the energy generated this year in kWHrs"""
+        low = long(self.read_register(int(0x3310), 0, 4))
+        high = long(self.read_register(int(0x3311), 0, 4))
+        return (low | (high << 8)) / 100.0
+
+    def get_energy_total(self):
+        """Return the total energy generated in kWHrs"""
+        low = long(self.read_register(int(0x3312), 0, 4))
+        high = long(self.read_register(int(0x3313), 0, 4))
+        return (low | (high << 8)) / 100.0
+
     # Controller Clock related
     def get_ctl_rtclock_sec(self):
         """Return the controller rtc seconds"""
