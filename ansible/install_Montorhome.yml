@@ -45,10 +45,17 @@
     #  become_user: mh
     #  command: sqlite3 -init /opt/mh/db/create_client_sqlite3_db.sql /opt/mh/db/data.db
 
-    # Copy api configuration file
-    - name: copy supervisord Flask API configuration file to host
+    # Copy montorhome api supervisor configuration file
+    - name: copy supervisor Flask API configuration file to host
       become: yes
       copy:
         src: ../raspi/init/files/mh_api_supervisor.conf
         dest: /etc/supervisor/conf.d/
+
+    # Copy montorhome api logrotate configuration file
+    - name: copy logrotate API configuration file to host
+      become: yes
+      copy:
+        src: ../raspi/init/files/mh_api_supervisor.conf
+        dest: /etc/logrotate/conf.d/
 
