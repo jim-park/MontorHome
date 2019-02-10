@@ -53,15 +53,9 @@ class TracerBN(minimalmodbus.Instrument):
 
     def __init__(self, portname=DEFAULT_SERIAL_PORT_NAME, slaveaddress=DEFAULT_MODBUS_ADDRESS):
         minimalmodbus.Instrument.__init__(self, portname, slaveaddress)
-        self.debug = False
         self.serial.baudrate = DEFAULT_SERIAL_BAUD_RATE
-
-        # Flush the serial buffer, before we begin
-        try:
-            while self.serial.read(1):
-                continue
-        except IOError:
-            pass
+        self.debug = False      # Set minimal modbus debugging on or off
+        self.serial.flush()     # Flush the serial buffer, before we begin
 
     # Battery related
     def get_rated_batt_voltage(self):
