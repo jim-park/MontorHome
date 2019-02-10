@@ -146,6 +146,12 @@ class TracerBN(minimalmodbus.Instrument):
         high = long(self.read_register(int(0x3313), 0, 4))
         return (low | (high << 8)) / 100.0
 
+    def get_co2_saved(self):
+        """Return the total co2 saved in Tonnes"""
+        low = long(self.read_register(int(0x3314), 0, 4))
+        high = long(self.read_register(int(0x3315), 0, 4))
+        return (low | (high << 8)) / 100.0
+
     # Controller Clock related
     def get_ctl_rtclock_sec(self):
         """Return the controller rtc seconds"""

@@ -110,6 +110,11 @@ def energy_day():
     return "%s" % tracerbn.TracerBN(portname=serial_port).get_energy_today()
 
 
+@app.route('/co2_saved')
+def co2_saved():
+    return "%s" % tracerbn.TracerBN(portname=serial_port).get_co2_saved()
+
+
 if __name__ == '__main__':
 
     try:
