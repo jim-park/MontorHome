@@ -209,7 +209,7 @@ def find_serial_port():
     for port in ports_list:
 
         try:
-            with serial.Serial(port, DEFAULT_SERIAL_BAUD_RATE) as s:
+            with serial.Serial(port=port, baudrate=DEFAULT_SERIAL_BAUD_RATE, timeout=1.0) as s:
                 s.write(DEV_INFO_BYTES)
                 dev_info = s.read(int(62))  # read 62 bytes of device information returned
 
@@ -219,7 +219,7 @@ def find_serial_port():
                 else:
                     print "A device is present at %s, but is not a TracerBN" % port
 
-        except serial.SerialException:
+        except (serial.SerialException, serial.SerialTimeoutException):
             print "Failed to find device on port %s" % port
 
     # If we haven't found a device on a port by this point,
