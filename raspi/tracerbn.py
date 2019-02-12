@@ -28,9 +28,16 @@ def get_low_byte(word):
     return word & 0x00FF
 
 
-def switch_4_bytes(integer):
+def switch_4_bytes(val):
     # Switch about the top and bottom 4 bytes.
-    return ((long(integer) & 0xFFFF0000) >> 16) | ((long(integer) & 0x0000FFFF) << 16)
+    return ((int(val) & 0xFFFF0000) >> 16) | ((int(val) & 0x0000FFFF) << 16)
+
+
+def twos_comp(val, bits):
+    """compute the 2's complement of int value val"""
+    if (val & (1 << (bits - 1))) != 0:  # if sign bit is set e.g., 8bit: 128-255
+        val = val - (1 << bits)         # compute negative value
+    return val                          # return positive value as is
 
 
 class TracerBN(minimalmodbus.Instrument):
@@ -72,8 +79,8 @@ class TracerBN(minimalmodbus.Instrument):
 
     def get_batt_current(self):
         """Return the instantaneous battery current"""
-        ret = switch_4_bytes(self.read_long(int(0x331B), 4, signed=True))
-        return ret / 100.0
+        val = switch_4_bytes(self.read_long(int(0x331B), 4, signed=True))
+        return twos_comp(val, 32) / 100.0
 
     def get_batt_power(self):
         """Return the instantaneous charging power of the battery"""
@@ -110,7 +117,9 @@ class TracerBN(minimalmodbus.Instrument):
 
     def get_load_power(self):
         """Return the instantaneous load power"""
-        return self.read_register(int(0x310E), 2, 4)
+        # return self.read_register(int(0x310E), 2, 4)
+        val = switch_4_bytes(self.read_long(int(0x310E), 4, signed=True))
+        return val / 100.0
 
     def get_load_voltage(self):
         """Return the instantaneous load voltage"""
