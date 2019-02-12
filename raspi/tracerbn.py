@@ -81,8 +81,20 @@ class TracerBN(minimalmodbus.Instrument):
         """Return the rated capacity of the battery"""
         return self.read_register(int(0x9001), 0, 3)
 
+    def get_batt_soc(self):
+        """Return the State of Charge (SOC) of the battery"""
+        return self.read_register(int(0x311A), 0, 4)
+
+    def get_batt_voltage_max_today(self):
+        """Return the maximum voltage the battery has reached today"""
+        return self.read_register(int(0x3302), 2, 4)
+
+    def get_batt_voltage_min_today(self):
+        """Return the minimum voltage the battery has been at today"""
+        return self.read_register(int(0x3303), 2, 4)
+
     def set_batt_rated_capacity(self, capacity):
-        """Set the rated battery capacity of the battery"""
+        """Set the rated capacity of the battery"""
         return self.write_register(int(0x9001), capacity, 0)
 
     # Load related
@@ -110,6 +122,14 @@ class TracerBN(minimalmodbus.Instrument):
     def get_pv_voltage(self):
         """Return the instantaneous PV voltage"""
         return self.read_register(int(0x3100), 2, 4)
+
+    def get_pv_voltage_max_today(self):
+        """Return the maximum voltage the PV has reached today"""
+        return self.read_register(int(0x3300), 2, 4)
+
+    def get_pv_voltage_min_today(self):
+        """Return the minimum voltage the PV has been at today"""
+        return self.read_register(int(0x3301), 2, 4)
 
     # Controller general params
     def get_night_or_day(self):

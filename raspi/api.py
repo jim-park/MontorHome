@@ -37,6 +37,16 @@ def batt_voltage():
     return "%s" % safe_tracer().get_batt_voltage()
 
 
+@app.route('/batt_voltage_max')
+def batt_voltage_max():
+    return "%s" % safe_tracer().get_batt_voltage_max_today()
+
+
+@app.route('/batt_voltage_min')
+def batt_voltage_min():
+    return "%s" % safe_tracer().get_batt_voltage_min_today()
+
+
 @app.route('/batt_current')
 def batt_current():
     return "%s" % safe_tracer().get_batt_current()
@@ -52,6 +62,11 @@ def batt_temperature():
     return "%s" % safe_tracer().get_batt_temp()
 
 
+@app.route('/batt_soc')
+def batt_soc():
+    return "%s" % safe_tracer().get_batt_soc()
+
+
 
 #
 # PV info
@@ -59,6 +74,16 @@ def batt_temperature():
 @app.route('/pv_voltage')
 def pv_voltage():
     return "%s" % safe_tracer().get_pv_voltage()
+
+
+@app.route('/pv_voltage_max')
+def pv_voltage_max():
+    return "%s" % safe_tracer().get_pv_voltage_max_today()
+
+
+@app.route('/pv_voltage_min')
+def pv_voltage_min():
+    return "%s" % safe_tracer().get_pv_voltage_min_today()
 
 
 @app.route('/pv_current')
