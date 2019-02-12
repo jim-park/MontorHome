@@ -28,6 +28,11 @@ def get_low_byte(word):
     return word & 0x00FF
 
 
+def switch_4_bytes(integer):
+    # Switch about the top and bottom 4 bytes.
+    return ((long(integer) & 0xFFFF0000) >> 16) | ((long(integer) & 0x0000FFFF) << 16)
+
+
 class TracerBN(minimalmodbus.Instrument):
     """Instrument class for Tracer BN Series MPPT solar charger controller.
 
@@ -67,7 +72,8 @@ class TracerBN(minimalmodbus.Instrument):
 
     def get_batt_current(self):
         """Return the instantaneous battery current"""
-        return self.read_register(int(0x331B), 2, 4, signed=True)
+        ret = switch_4_bytes(self.read_long(int(0x331B), 4, signed=True))
+        return ret / 100.0
 
     def get_batt_power(self):
         """Return the instantaneous charging power of the battery"""
@@ -138,33 +144,28 @@ class TracerBN(minimalmodbus.Instrument):
 
     def get_energy_today(self):
         """Return the energy generated today in kWHrs"""
-        low = long(self.read_register(int(0x330C), 0, 4))
-        high = long(self.read_register(int(0x330D), 0, 4))
-        return (low | (high << 8)) / 100.0
+        ret = switch_4_bytes(self.read_long(int(0x330C), 4, signed=True))
+        return ret / 100.0
 
     def get_energy_month(self):
         """Return the energy generated this month in kWHrs"""
-        low = long(self.read_register(int(0x330E), 0, 4))
-        high = long(self.read_register(int(0x330F), 0, 4))
-        return (low | (high << 8)) / 100.0
+        ret = switch_4_bytes(self.read_long(int(0x330E), 4, signed=True))
+        return ret / 100.0
 
     def get_energy_year(self):
         """Return the energy generated this year in kWHrs"""
-        low = long(self.read_register(int(0x3310), 0, 4))
-        high = long(self.read_register(int(0x3311), 0, 4))
-        return (low | (high << 8)) / 100.0
+        ret = switch_4_bytes(self.read_long(int(0x3310), 4, signed=True))
+        return ret / 100.0
 
     def get_energy_total(self):
         """Return the total energy generated in kWHrs"""
-        low = long(self.read_register(int(0x3312), 0, 4))
-        high = long(self.read_register(int(0x3313), 0, 4))
-        return (low | (high << 8)) / 100.0
+        ret = switch_4_bytes(self.read_long(int(0x3312), 4, signed=True))
+        return ret / 100.0
 
     def get_co2_saved(self):
         """Return the total co2 saved in Tonnes"""
-        low = long(self.read_register(int(0x3314), 0, 4))
-        high = long(self.read_register(int(0x3315), 0, 4))
-        return (low | (high << 8)) / 100.0
+        ret = switch_4_bytes(self.read_long(int(0x3314), 4, signed=True))
+        return ret / 100.0
 
     # Controller Clock related
     def get_ctl_rtclock_sec(self):
