@@ -32,7 +32,7 @@
         android:id="@+id/schematicView"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
+        android:layout_gravity="bottom | center"
         class="com.lnl.montorhome.SchematicFragment"
         tools:layout="@layout/fragmentschematic"
         android:layout_weight="0.8" />
