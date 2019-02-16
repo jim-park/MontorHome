@@ -14,9 +14,6 @@ DEFAULT_SERIAL_PORT_NAME = "/dev/ttyUSB0"
 DEFAULT_SERIAL_BAUD_RATE = 115200
 DEFAULT_MODBUS_ADDRESS = 1
 
-# Globals
-DEV_INFO_BYTES = bytearray([0x01, 0x2b, 0x0e, 0x01, 0x00, 0x70, 0x77])  # Raw device information request
-
 
 def get_high_byte(word):
     """Return the highest 8 bits of a 16-bit digit"""
@@ -71,10 +68,11 @@ class TracerBN(minimalmodbus.Instrument):
 
     # Battery related
     def get_rated_batt_voltage(self):
+        """Return the rated battery voltage"""
         return self.read_register(int(0x3004), 2, 4)
 
     def get_batt_voltage(self):
-        """Return the rated battery voltage"""
+        """Return the instantaneous battery voltage"""
         return self.read_register(int(0x331A), 2, 4)
 
     def get_batt_current(self):
@@ -84,7 +82,7 @@ class TracerBN(minimalmodbus.Instrument):
 
     def get_batt_power(self):
         """Return the instantaneous charging power of the battery"""
-        return self.read_register(int(0x3106), 2, 4)
+        return switch_4_bytes(self.read_long(int(0x3106), 4, signed=False)) / 100.0
 
     def get_batt_temp(self):
         """Return the temperature from the battery temperature sensor"""
@@ -229,21 +227,24 @@ class TracerBN(minimalmodbus.Instrument):
 
 
 # Interrogate serial ports for TracerBN device.
-def find_serial_port():
+def find_serial_port(ports_list=None):
     """Return the port path once the device is identified, otherwise raise an exception"""
 
-    # This pythonic line of code creates an list of device paths (containing the
-    # string "ttyUSB") from the /dev directory.  e.g ["/dev/ttyUSB0", "/dev/ttyUSB2"]
-    ports_list = ["/dev/%s" % s for s in os.listdir('/dev') if "ttyUSB" in s]
+    device_info_request = bytearray([0x01, 0x2b, 0x0e, 0x01, 0x00, 0x70, 0x77])  # Raw device information request
+
+    if not ports_list:
+        # This pythonic line of code creates a list of device paths (containing the
+        # string "ttyUSB") from the /dev directory.  e.g ["/dev/ttyUSB0", "/dev/ttyUSB2"]
+        ports_list = ["/dev/%s" % s for s in os.listdir('/dev') if "ttyUSB" in s]
 
     for port in ports_list:
 
         try:
             with serial.Serial(port=port, baudrate=DEFAULT_SERIAL_BAUD_RATE, timeout=1.0) as s:
-                s.write(DEV_INFO_BYTES)
+                s.write(device_info_request)
                 dev_info = s.read(int(62))  # read 62 bytes of device information returned
 
-                if dev_info.find("Tracer"):
+                if dev_info.find("Tracer") is not -1:
                     print "Found TracerBN on %s" % port
                     return port
                 else:
@@ -255,4 +256,3 @@ def find_serial_port():
     # If we haven't found a device on a port by this point,
     # raise an exception. The device cannot be found.
     raise Exception('Failed to find TracerBN on any port')
-
