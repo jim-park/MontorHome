@@ -1,6 +1,6 @@
 # MontorHome
 
-This project aims to provide real time data monitoring for remotely installed instrumentation. The data can be accessed via a dashboard in a Browser, or through an Android App.
+This project aims to provide real time data monitoring for remotely installed instrumentation. The data can be accessed via an an Android app or a status page at http://www.linuxnetworks.co.uk/monitor.html.
 
 This project is best described with an overall system schematic.
 ![MontorHome system schematic](https://docs.google.com/drawings/d/e/2PACX-1vTE8mDiYIVS3sTuNVBM3YH6iovJMq5rNCjlLHx6z9H6EGsLSPnLEZmZ-o7lq-v13J7i_yCaTvnIU1jW/pub?w=1133&h=521)
