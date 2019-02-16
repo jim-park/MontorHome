@@ -5,7 +5,9 @@ import android.preference.PreferenceFragment;
 import android.util.Log;
 
 /**
- * Created by jim on 03/04/16.
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 03/04/16.
  */
 public class SettingsFragment extends PreferenceFragment {
 

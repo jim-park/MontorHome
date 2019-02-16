@@ -11,7 +11,9 @@ import android.util.Log;
 import java.util.HashMap;
 
 /**
- * Created by jim on 25/1/2559.
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 25/1/2559.
  */
 public class MyGLRenderer implements GLSurfaceView.Renderer {
 

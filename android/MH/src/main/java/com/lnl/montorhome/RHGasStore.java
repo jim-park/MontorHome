@@ -1,7 +1,9 @@
 package com.lnl.montorhome;
 
 /**
- * Created by jim on 8/2/2559.
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 8/2/2559.
  */
 public class RHGasStore extends BaseShape {
 

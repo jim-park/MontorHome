@@ -8,7 +8,9 @@ import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 
 /**
- * Created by jim on 25/1/2559.
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 25/1/2559.
  */
 
 

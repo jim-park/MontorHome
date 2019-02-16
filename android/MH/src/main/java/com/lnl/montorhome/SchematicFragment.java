@@ -9,7 +9,9 @@ import android.view.View;
 import android.view.ViewGroup;
 
 /**
- * Created by jim on 6/3/2559.
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 6/3/2559.
  */
 public class SchematicFragment extends Fragment {
     String TAG = "SchematicFrag";

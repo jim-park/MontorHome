@@ -15,7 +15,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * Created by jim on 29/2/2559.
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 29/2/2559.
  */
 public class RegistrationIntentService extends IntentService {
     String TAG = "RegIntentService";

@@ -8,7 +8,9 @@ import com.google.android.gms.gcm.GcmListenerService;
 import static android.app.PendingIntent.getActivity;
 
 /**
- * Created by jim on 4/3/2559.
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 4/3/2559.
  */
 public class MyGcmListenerService extends GcmListenerService {
 
