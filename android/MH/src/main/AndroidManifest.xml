@@ -29,6 +29,10 @@
             android:name=".SettingsActivity"
             android:label="MontorHome Settings" >
         </activity>
+        <activity
+            android:name=".BatteryStatsActivity"
+            android:label="Battery Statistics" >
+        </activity>
         <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
              App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
         <meta-data

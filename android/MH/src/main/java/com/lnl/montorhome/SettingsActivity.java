@@ -7,7 +7,9 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 
 /**
- * Created by James Park on 08/04/16.
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 08/04/16.
  */
 public class SettingsActivity extends Activity {
 

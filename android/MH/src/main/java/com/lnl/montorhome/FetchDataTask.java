@@ -10,9 +10,12 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-/**
- * Created by James Park on 28/01/19.
+ /**
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 28/01/19.
  */
+
 public class FetchDataTask extends AsyncTask<String, Void, FetchDataTask.Wrapper> {
 
     String TAG = "FetchDataTask";
@@ -28,9 +31,9 @@ public class FetchDataTask extends AsyncTask<String, Void, FetchDataTask.Wrapper
     private Context appContext;
     private Wrapper wrapper =new Wrapper();
 
-    public FetchDataTask(MainActivity caller) {
+    public FetchDataTask(Context context, AsyncResponse caller) {
         delegate = caller;
-        appContext = caller.getApplicationContext();
+        appContext = context;
     }
 
     public interface AsyncResponse {

@@ -1,7 +1,5 @@
 package com.lnl.montorhome;
 
-import android.app.Fragment;
-import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -18,6 +16,15 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.lnl.montorhome.FetchDataTask.AsyncResponse;
+
+import java.util.Locale;
+
+
+/**
+ * Created by James Park
+ * email: jim@linuxnetworks.co.uk
+ * Date: 08/04/16.
+ */
 
 public class MainActivity extends AppCompatActivity implements AsyncResponse {
     String TAG = "MainActivity";
@@ -46,9 +53,24 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         */
         for (String dataCode : dataCodes.allData) {
             // Create and exeute a new AsyncTask for each request.
-            FetchDataTask fetchfromAPITask =new FetchDataTask(MainActivity.this);
+            FetchDataTask fetchfromAPITask =new FetchDataTask(MainActivity.this.getApplicationContext(), MainActivity.this);
             fetchfromAPITask.execute(dataCode);
         }
+
+        /*
+         * Setup refresh button listener
+         */
+        Button button = (Button) findViewById(R.id.refresh_button);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                //   Fetch and display remote instrumentation data
+                for (String dataCode : dataCodes.allData) {
+                    // Create and exeute a new AsyncTask for each request.
+                    FetchDataTask fetchfromAPITask =new FetchDataTask(MainActivity.this.getApplicationContext(), MainActivity.this);
+                    fetchfromAPITask.execute(dataCode);
+                }
+            }
+        });
     }
 
     /*
@@ -58,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     public void processFinish(FetchDataTask.Wrapper output){
         //Receive the result fired from FetchDataTask class
         //of onPostExecute(result) method.
-        Log.d("INFO", "data: " + output.data + ", type: " + output.type);
+        Log.d(TAG, "data: " + output.data + ", type: " + output.type);
         TextView dataViewId = null;
 
         switch(output.type) {
@@ -92,25 +114,10 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         }
         if(dataViewId != null) {
             // Format output string to 2dp
-            dataViewId.setText( String.format("%.2f", Float.parseFloat(output.data)) );
+            dataViewId.setText(String.format(Locale.getDefault(), "%.2f", Float.parseFloat(output.data)) );
         }
-
-
-        /*
-            Refresh button listener
-         */
-        Button button = (Button) findViewById(R.id.refresh_button);
-        button.setOnClickListener(new View.OnClickListener() {
-        public void onClick(View v) {
-                //   Fetch and display remote instrumentation data
-                for (String dataCode : dataCodes.allData) {
-                    // Create and exeute a new AsyncTask for each request.
-                    FetchDataTask fetchfromAPITask =new FetchDataTask(MainActivity.this);
-                    fetchfromAPITask.execute(dataCode);
-                }
-            }
-        });
     }
+
 
     /*
      * Static data structure for names of api call parameters
@@ -132,27 +139,36 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     }
 
     /*
-     * Deal with a change in orientation
+     * Battery statistics view
      */
-    @Override
-    public void onConfigurationChanged(Configuration config) {
-        super.onConfigurationChanged(config);
-
-        final Fragment fragmentBSV = getFragmentManager().findFragmentById(R.id.basestatsView);
-        FragmentTransaction ft = getFragmentManager().beginTransaction();
-
-        if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            // Hide the Base Stats View and Action Bar
-            ft.hide(fragmentBSV);
-            ft.commit();
-            getSupportActionBar().hide();
-        } else {
-            // Show the Base Stats View and Action Bar
-            ft.show(fragmentBSV);
-            ft.commit();
-            getSupportActionBar().show();
-        }
+    public void BatteryStatsClick(View view) {
+        Intent intent = new Intent(this.getApplicationContext(), BatteryStatsActivity.class);
+        startActivity(intent);
     }
+
+    /*
+     * Deal with a change in orientation
+     * TODO: Fix this, make it less annoying.
+     */
+//    @Override
+//    public void onConfigurationChanged(Configuration config) {
+//        super.onConfigurationChanged(config);
+//
+//        final Fragment fragmentBSV = getFragmentManager().findFragmentById(R.id.basestatsView);
+//        FragmentTransaction ft = getFragmentManager().beginTransaction();
+//
+//        if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+//            // Hide the Base Stats View and Action Bar
+//            ft.hide(fragmentBSV);
+//            ft.commit();
+//            getSupportActionBar().hide();
+//        } else {
+//            // Show the Base Stats View and Action Bar
+//            ft.show(fragmentBSV);
+//            ft.commit();
+//            getSupportActionBar().show();
+//        }
+//    }
 
     /*
      * Options Menu Setup
