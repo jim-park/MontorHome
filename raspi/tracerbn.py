@@ -16,12 +16,12 @@ DEFAULT_MODBUS_ADDRESS = 1
 
 
 def get_high_byte(word):
-    """Return the highest 8 bits of a 16-bit digit"""
+    """ Return the highest 8 bits of a 16-bit digit. """
     return (word & 0xFF00) >> 8
 
 
 def get_low_byte(word):
-    """Return the lowest 8 bits of a 16-bit digit"""
+    """ Return the lowest 8 bits of a 16-bit digit. """
     return word & 0x00FF
 
 
@@ -31,16 +31,16 @@ def switch_4_bytes(val):
 
 
 def twos_comp(val, bits):
-    """compute the 2's complement of int value val"""
+    """ Compute the 2's complement of val. """
     if (val & (1 << (bits - 1))) != 0:  # if sign bit is set e.g., 8bit: 128-255
         val = val - (1 << bits)         # compute negative value
     return val                          # return positive value as is
 
 
 class TracerBN(minimalmodbus.Instrument):
-    """Instrument class for Tracer BN Series MPPT solar charger controller.
+    """ Instrument class for Tracer BN Series MPPT solar charger controller.
 
-    Communicates via Modbus RTU protocol (via RS232 or RS485), using the *MinimalModbus* Python module.
+    Communicates via ModBus RTU protocol (over RS232 or RS485), using the *MinimalModbus* Python module.
 
     Args:
         * portname (str): port name
@@ -56,151 +56,254 @@ class TracerBN(minimalmodbus.Instrument):
     ==================  ====================
 
     All register addresses were found in the document "ControllerProtocolV2.3.pdf" available
-    from Jarkko Sonninens' execellent github page at https://github.com/kasbert/epsolar-tracer.
+    from Jarkko Sonninens' excellent github page at https://github.com/kasbert/epsolar-tracer.
 
     """
 
     def __init__(self, portname=DEFAULT_SERIAL_PORT_NAME, slaveaddress=DEFAULT_MODBUS_ADDRESS):
         minimalmodbus.Instrument.__init__(self, portname, slaveaddress)
         self.serial.baudrate = DEFAULT_SERIAL_BAUD_RATE
-        self.debug = False      # Set minimal modbus debugging on or off
+        self.debug = False      # Set minimalmodbus debugging on or off
         self.serial.flush()     # Flush the serial buffer, before we begin
 
-    # Battery related
-    def get_rated_batt_voltage(self):
-        """Return the rated battery voltage"""
+    #
+    # Battery related.
+    #
+    def get_batt_rated_voltage(self):
+        """ Return a float indicating the rated battery voltage. """
         return self.read_register(int(0x3004), 2, 4)
 
     def get_batt_voltage(self):
-        """Return the instantaneous battery voltage"""
+        """ Return a float indicating the instantaneous battery voltage in Volts. """
         return self.read_register(int(0x331A), 2, 4)
 
     def get_batt_current(self):
-        """Return the instantaneous battery current"""
+        """ Return a signed float indicating the instantaneous battery current in Amperes. """
         val = switch_4_bytes(self.read_long(int(0x331B), 4, signed=True))
         return twos_comp(val, 32) / 100.0
 
     def get_batt_power(self):
-        """Return the instantaneous charging power of the battery"""
-        return switch_4_bytes(self.read_long(int(0x3106), 4, signed=False)) / 100.0
+        """ Return a float indicating the instantaneous charging power of the battery in Watts. """
+        return switch_4_bytes(self.read_long(int(0x3106), 4, signed=True)) / 100.0
 
     def get_batt_temp(self):
-        """Return the temperature from the battery temperature sensor"""
+        """ Return a signed float indicating the temperature from the battery temperature sensor in degC. """
         return self.read_register(int(0x311B), 2, 4, signed=True)
 
     def get_batt_rated_capacity(self):
-        """Return the rated capacity of the battery"""
+        """ Return an int indicating the rated capacity of the battery in Volts. """
         return self.read_register(int(0x9001), 0, 3)
 
     def get_batt_soc(self):
-        """Return the State of Charge (SOC) of the battery"""
+        """ Return an int indicating the State of Charge (SOC) of the battery as a percentage. """
         return self.read_register(int(0x311A), 0, 4)
 
     def get_batt_voltage_max_today(self):
-        """Return the maximum voltage the battery has reached today"""
+        """ Return a float indicating the maximum voltage the battery has reached today in Volts. """
         return self.read_register(int(0x3302), 2, 4)
 
     def get_batt_voltage_min_today(self):
-        """Return the minimum voltage the battery has been at today"""
+        """ Return a float indicating the minimum voltage the battery has been at today in Volts. """
         return self.read_register(int(0x3303), 2, 4)
 
     def set_batt_rated_capacity(self, capacity):
-        """Set the rated capacity of the battery"""
+        """ Set the rated capacity of the battery in Ah. """
         return self.write_register(int(0x9001), capacity, 0)
 
-    # Load related
+    def get_batt_status(self):
+        """ Return an array containing 4 elements indicating the battery status. """
+        statuses = int(self.read_register((int(0x3200)), 0, 4))
+        # statuses contains four parameters to read (unpack) from various bits across the 2 bytes received.
+
+        # Battery Status, comprises bits 0-3, they hold values 0-4 only. They indicate;
+        #   (0) Normal | (1) Overvolt | (2) Undervolt | (3) Low volt disconnect | (4) Fault
+        batt_status = statuses & 0x000F
+
+        # Battery Temperature Status, comprises, bits 4-7, they hold values 0-2 only. They indicate;
+        #   (0) Normal | (1) Over temperature | (2) Low temperature
+        batt_temp_status = (statuses & 0x00F0) >> 4
+
+        # Battery Internal Resistance Abnormal Flag, comprises bit 8. It's a boolean. It indicates;
+        #    (0) BIR normal | (1) BIR abnormal
+        bir_fault = (statuses & 0x0100) >> 8
+
+        # Wrong Identification For Battery Rated Voltage Flag. It's a boolean. It indicates;
+        #     (0) Correct id for rated voltage | (1) Wrong id for rated voltage
+        batt_rated_voltage_fault = (statuses & 0x8000) >> 15
+
+        print "drv: status: %d, temp status: %d, bir fault: %d, rated voltage fault: %d" % \
+              (batt_status, batt_temp_status, bir_fault, batt_rated_voltage_fault)
+
+        return [batt_status, batt_temp_status, bir_fault, batt_rated_voltage_fault]
+
+    def get_charging_equip_status(self):
+        """ Return an array containing 12 elements indicating various charging status details. """
+        statuses = int(self.read_register((int(0x3201)), 0, 4))
+        # statuses contains 12 parameters to read (unpack) from various bits across the 2 bytes received.
+
+        # Charging Equipment Running, comprises bit 0, it's a boolean. It indicates;
+        #   (0) Normal | (1) Fault
+        charging_equip_running = statuses & 0x0001
+
+        # Charging Equipment Status, comprises bit 1, it's a boolean. It indicates;
+        #   (0) Normal | (1) Fault
+        charging_equip_status = (statuses & 0x0002) >> 1
+
+        # Charging Status, comprises bits 2-3, holds the values 0-3. It indicates;
+        #   (0) No Charging | (1) Float | (2) Boost | (3) Equalisation
+        charging_status = (statuses & 0x000C) >> 3
+
+        # PV Input is Short, comprises bit 4. It's a boolean. It indicates;
+        #   (0) Normal | (1) Short
+        pv_input_short = (statuses & 0x0040) >> 4
+
+        # Load MOSFET is Short, comprises bit 7. It's a boolean. It indicates;
+        #   (0) Normal | (1) Short
+        load_mosfet_short = (statuses & 0x0080) >> 7
+
+        # Load is Short, comprises bit 8. It's a boolean. It indicates;
+        #   (0) Normal | (1) Short
+        load_short = (statuses & 0x0100) >> 8
+
+        # Load is Over-Current, comprises bit 9. It's a boolean. It indicates;
+        #   (0) Normal | (1) Short
+        load_over_current = (statuses & 0x0200) >> 9
+
+        # Input is Over-Current, comprises bit 10. It's a boolean. It indicates;
+        #   (0) Normal | (1) Short
+        input_over_current = (statuses & 0x0400) >> 10
+
+        # Anti-Reverse MOSFET is short, comprises bit 11. It's a boolean. It indicates;
+        #   (0) Normal | (1) Short
+        anti_rev_mosfet_short = (statuses & 0x0800) >> 11
+
+        # Charging, or Anti-Reverse MOSFET is short, comprises bit 12. It's a boolean. It indicates;
+        #   (0) Normal | (1) Short
+        anti_rev_or_charging_mosfet_short = (statuses & 0x1000) >> 12
+
+        # Charging MOSFET is short, comprises bit 13. It's a boolean. It indicates;
+        #   (0) Normal | (1) Short
+        charging_mosfet_short = (statuses & 0x2000) >> 13
+
+        # Input Voltage Status, comprises bits 14-15, they hold values 0-3 only. They indicate;
+        #   (0) Normal | (1) No power connected | (2) High voltage input | (3) Input voltage error
+        input_voltage_status = (statuses & 0xC000) >> 14
+
+        # Put it all into an array.
+        rtn_array = [charging_equip_running,
+                     charging_equip_status,
+                     charging_status,
+                     pv_input_short,
+                     load_mosfet_short,
+                     load_short,
+                     load_over_current,
+                     input_over_current,
+                     anti_rev_mosfet_short,
+                     anti_rev_or_charging_mosfet_short,
+                     charging_mosfet_short,
+                     input_voltage_status]
+
+        return rtn_array
+
+    #
+    # Load related.
+    #
     def get_load_current(self):
-        """Return the instantaneous load current"""
+        """ Return the instantaneous load current in Amperes. """
         return self.read_register(int(0x310D), 2, 4)
 
     def get_load_power(self):
-        """Return the instantaneous load power"""
-        # return self.read_register(int(0x310E), 2, 4)
-        val = switch_4_bytes(self.read_long(int(0x310E), 4, signed=True))
-        return val / 100.0
+        """ Return the instantaneous load power in Watts. """
+        return switch_4_bytes(self.read_long(int(0x310E), 4)) / 100.0
 
     def get_load_voltage(self):
-        """Return the instantaneous load voltage"""
+        """ Return the instantaneous load voltage in Volts. """
         return self.read_register(int(0x310C), 2, 4)
 
-    # PV related
+    #
+    # PV related.
+    #
     def get_pv_power(self):
-        """Return the instantaneous PV power"""
-        return self.read_register(int(0x3102), 2, 4)
+        """ Return the instantaneous PV power in Volts. """
+        return switch_4_bytes(self.read_long(int(0x3102), 4)) / 100.0
 
     def get_pv_current(self):
-        """Return the instantaneous PV input current"""
+        """ Return the instantaneous PV input current in Amperes. """
         return self.read_register(int(0x3101), 2, 4)
 
     def get_pv_voltage(self):
-        """Return the instantaneous PV voltage"""
+        """ Return the instantaneous PV voltage in Volts. """
         return self.read_register(int(0x3100), 2, 4)
 
     def get_pv_voltage_max_today(self):
-        """Return the maximum voltage the PV has reached today"""
+        """ Return the maximum voltage the PV has reached today in Volts. """
         return self.read_register(int(0x3300), 2, 4)
 
     def get_pv_voltage_min_today(self):
-        """Return the minimum voltage the PV has been at today"""
+        """ Return the minimum voltage the PV has been at today in Volts. """
         return self.read_register(int(0x3301), 2, 4)
 
-    # Controller general params
+    #
+    # Controller general parameters.
+    #
     def get_night_or_day(self):
-        """Return night or day (1 or 0 respectively) from the controller"""
+        """ Return night or day (1 or 0 respectively) from the controller. """
         return self.read_bit(int(0x200C))
 
     def get_energy_today(self):
-        """Return the energy generated today in kWHrs"""
-        ret = switch_4_bytes(self.read_long(int(0x330C), 4, signed=True))
+        """ Return the energy generated today in kWHrs. """
+        ret = switch_4_bytes(self.read_long(int(0x330C), 4))
         return ret / 100.0
 
     def get_energy_month(self):
-        """Return the energy generated this month in kWHrs"""
-        ret = switch_4_bytes(self.read_long(int(0x330E), 4, signed=True))
+        """ Return the energy generated this month in kWHrs. """
+        ret = switch_4_bytes(self.read_long(int(0x330E), 4))
         return ret / 100.0
 
     def get_energy_year(self):
-        """Return the energy generated this year in kWHrs"""
-        ret = switch_4_bytes(self.read_long(int(0x3310), 4, signed=True))
+        """ Return the energy generated this year in kWHrs. """
+        ret = switch_4_bytes(self.read_long(int(0x3310), 4))
         return ret / 100.0
 
     def get_energy_total(self):
-        """Return the total energy generated in kWHrs"""
-        ret = switch_4_bytes(self.read_long(int(0x3312), 4, signed=True))
+        """ Return the total energy generated in kWHrs. """
+        ret = switch_4_bytes(self.read_long(int(0x3312), 4))
         return ret / 100.0
 
     def get_co2_saved(self):
-        """Return the total co2 saved in Tonnes"""
-        ret = switch_4_bytes(self.read_long(int(0x3314), 4, signed=True))
+        """ Return the total co2 saved in Tonnes. """
+        ret = switch_4_bytes(self.read_long(int(0x3314), 4))
         return ret / 100.0
 
-    # Controller Clock related
+    #
+    # Controller Clock related.
+    #
     def get_ctl_rtclock_sec(self):
-        """Return the controller rtc seconds"""
+        """ Return the controller rtc seconds. """
         return get_low_byte(self.read_register(int(0x9013), 0, 3))
 
     def get_ctl_rtclock_min(self):
-        """Return the controller rtc minutes"""
+        """ Return the controller rtc minutes. """
         return get_high_byte(self.read_register(int(0x9013), 0, 3))
 
     def get_ctl_rtclock_hour(self):
-        """Return the controller rtc hours"""
+        """ Return the controller rtc hours. """
         return get_low_byte(self.read_register(int(0x9014), 0, 3))
 
     def get_ctl_rtclock_day(self):
-        """Return the controller rtc day of month"""
+        """ Return the controller rtc day of month. """
         return get_high_byte(self.read_register(int(0x9014), 0, 3))
 
     def get_ctl_rtclock_month(self):
-        """Return the controller rtc month"""
+        """ Return the controller rtc month. """
         return get_low_byte(self.read_register(int(0x9015), 0, 3))
 
     def get_ctl_rtclock_year(self):
-        """Return the controller rtc year"""
+        """ Return the controller rtc year. """
         return get_high_byte(self.read_register(int(0x9015), 0, 3))
 
     def get_ctl_rtclock_time(self):
-        """Return the controller time as a time object"""
+        """ Return the controller time as a time object. """
         t_str = "%s %s %s %s %s %s" % (self.get_ctl_rtclock_year(),
                                         self.get_ctl_rtclock_month(),
                                         self.get_ctl_rtclock_day(),
@@ -211,30 +314,31 @@ class TracerBN(minimalmodbus.Instrument):
         return time.strptime(t_str, "%y %m %d %H %M %S")
 
     def set_ctl_rtclock(self, year, mon, mday, hrs, mins, secs):
-        """All time registers must be written at once
-            year is a 2 digit number, not 4."""
+        """ All time registers must be written at once
+            year must be a 2 digit number, not 4. """
         word0 = ((mins << 8) & 0xFF00) | secs  # mins : secs
         word1 = ((mday << 8) & 0xFF00) | hrs   # mday : hours
         word2 = ((year << 8) & 0xFF00) | mon   # year : mon
         return self.write_registers(int(0x9013), [word0, word1, word2])
 
     def set_ctl_rtclock_localtime(self):
-        """Set the time on the tracer to localtime"""
+        """ Set the time on the tracer to localtime. """
         t = time.localtime()
-        # We need a 2 digit year
-        year = int(time.strftime("%y", t))
+        year = int(time.strftime("%y", t))      # Tracer expects a 2 digit year.
         return self.set_ctl_rtclock(year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
 
 
-# Interrogate serial ports for TracerBN device.
+#
+# Interrogate serial ports for a TracerBN device.
+#
 def find_serial_port(ports_list=None):
-    """Return the port path once the device is identified, otherwise raise an exception"""
+    """ Return the port path once the device is identified, otherwise raise an exception. """
 
     device_info_request = bytearray([0x01, 0x2b, 0x0e, 0x01, 0x00, 0x70, 0x77])  # Raw device information request
 
     if not ports_list:
         # This pythonic line of code creates a list of device paths (containing the
-        # string "ttyUSB") from the /dev directory.  e.g ["/dev/ttyUSB0", "/dev/ttyUSB2"]
+        # string "ttyUSB") from the /dev directory.  e.g ["/dev/ttyUSB0", "/dev/ttyUSB2"].
         ports_list = ["/dev/%s" % s for s in os.listdir('/dev') if "ttyUSB" in s]
 
     for port in ports_list:
