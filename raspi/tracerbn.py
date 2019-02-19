@@ -15,28 +15,6 @@ DEFAULT_SERIAL_BAUD_RATE = 115200
 DEFAULT_MODBUS_ADDRESS = 1
 
 
-def get_high_byte(word):
-    """ Return the highest 8 bits of a 16-bit digit. """
-    return (word & 0xFF00) >> 8
-
-
-def get_low_byte(word):
-    """ Return the lowest 8 bits of a 16-bit digit. """
-    return word & 0x00FF
-
-
-def switch_4_bytes(val):
-    # Switch about the top and bottom 4 bytes.
-    return ((int(val) & 0xFFFF0000) >> 16) | ((int(val) & 0x0000FFFF) << 16)
-
-
-def twos_comp(val, bits):
-    """ Compute the 2's complement of val. """
-    if (val & (1 << (bits - 1))) != 0:  # if sign bit is set e.g., 8bit: 128-255
-        val = val - (1 << bits)         # compute negative value
-    return val                          # return positive value as is
-
-
 class TracerBN(minimalmodbus.Instrument):
     """ Instrument class for Tracer BN Series MPPT solar charger controller.
 
@@ -67,6 +45,38 @@ class TracerBN(minimalmodbus.Instrument):
         self.serial.flush()     # Flush the serial buffer, before we begin
 
     #
+    # Wrapper for minimalmonbus read_long() method.
+    #
+    def read_long_tracer(self, registeraddress, numberOfDecimals=0, functioncode=4, signed=False):
+        """ Read 2 registers (32-bits) from the tracerbn. Deal with negative values and divisors. """
+        # Read long data using minimalmodbus
+        data = self.read_long(registeraddress=registeraddress, functioncode=functioncode, signed=signed)
+
+        # Swap around the top and bottom pairs of bytes.
+        data = ((int(data) & 0xFFFF0000) >> 16) | ((int(data) & 0x0000FFFF) << 16)
+
+        # If we are a signed number, compute the 2's complement of data.
+        if signed and (data & (1 << (32 - 1))) != 0:
+            data = data - (1 << 32)         # compute negative value
+
+        # Divide by the number of dps specified.
+        if numberOfDecimals > 0:
+            data = data / (10.0 ** numberOfDecimals)
+
+        return data
+
+    #
+    # Wrappers for minimalmodbus read_register() method.
+    #
+    def read_register_low_byte(self, registeraddress, numberOfDecimals=0, functioncode=3, signed=False):
+        """ Return the low byte of a 16-bit register. """
+        return self.read_register(registeraddress, numberOfDecimals, functioncode, signed) & 0xFF
+
+    def read_register_high_byte(self, registeraddress, numberOfDecimals=0, functioncode=3, signed=False):
+        """ Return the high byte of a 16-bit register. """
+        return (self.read_register(registeraddress, numberOfDecimals, functioncode, signed) >> 8) & 0xFF
+
+    #
     # Battery related.
     #
     def get_batt_rated_voltage(self):
@@ -79,12 +89,11 @@ class TracerBN(minimalmodbus.Instrument):
 
     def get_batt_current(self):
         """ Return a signed float indicating the instantaneous battery current in Amperes. """
-        val = switch_4_bytes(self.read_long(int(0x331B), 4, signed=True))
-        return twos_comp(val, 32) / 100.0
+        return self.read_long_tracer(int(0x331B), 2, 4, signed=True)
 
     def get_batt_power(self):
         """ Return a float indicating the instantaneous charging power of the battery in Watts. """
-        return switch_4_bytes(self.read_long(int(0x3106), 4, signed=True)) / 100.0
+        return self.read_long_tracer(int(0x3106), 2, 4, signed=True)
 
     def get_batt_temp(self):
         """ Return a signed float indicating the temperature from the battery temperature sensor in degC. """
@@ -140,6 +149,7 @@ class TracerBN(minimalmodbus.Instrument):
         """ Return an array containing 12 elements indicating various charging status details. """
         statuses = int(self.read_register((int(0x3201)), 0, 4))
         # statuses contains 12 parameters to read (unpack) from various bits across the 2 bytes received.
+
         # Charging Equipment Running, comprises bit 0, it's a boolean. It indicates;
         #   (0) Normal | (1) Fault
         charging_equip_running = statuses & 0x0001
@@ -213,7 +223,7 @@ class TracerBN(minimalmodbus.Instrument):
 
     def get_load_power(self):
         """ Return the instantaneous load power in Watts. """
-        return switch_4_bytes(self.read_long(int(0x310E), 4)) / 100.0
+        return self.read_long_tracer(int(0x310E), numberOfDecimals=2)
 
     def get_load_voltage(self):
         """ Return the instantaneous load voltage in Volts. """
@@ -224,7 +234,7 @@ class TracerBN(minimalmodbus.Instrument):
     #
     def get_pv_power(self):
         """ Return the instantaneous PV power in Volts. """
-        return switch_4_bytes(self.read_long(int(0x3102), 4)) / 100.0
+        return self.read_long_tracer(int(0x3102), numberOfDecimals=2)
 
     def get_pv_current(self):
         """ Return the instantaneous PV input current in Amperes. """
@@ -251,55 +261,50 @@ class TracerBN(minimalmodbus.Instrument):
 
     def get_energy_today(self):
         """ Return the energy generated today in kWHrs. """
-        ret = switch_4_bytes(self.read_long(int(0x330C), 4))
-        return ret / 100.0
+        return self.read_long_tracer(int(0x330C), numberOfDecimals=2)
 
     def get_energy_month(self):
         """ Return the energy generated this month in kWHrs. """
-        ret = switch_4_bytes(self.read_long(int(0x330E), 4))
-        return ret / 100.0
+        return self.read_long_tracer(int(0x330E), numberOfDecimals=2)
 
     def get_energy_year(self):
         """ Return the energy generated this year in kWHrs. """
-        ret = switch_4_bytes(self.read_long(int(0x3310), 4))
-        return ret / 100.0
+        return self.read_long_tracer(int(0x3310), numberOfDecimals=2)
 
     def get_energy_total(self):
         """ Return the total energy generated in kWHrs. """
-        ret = switch_4_bytes(self.read_long(int(0x3312), 4))
-        return ret / 100.0
+        return self.read_long_tracer(int(0x3312), numberOfDecimals=2)
 
     def get_co2_saved(self):
         """ Return the total co2 saved in Tonnes. """
-        ret = switch_4_bytes(self.read_long(int(0x3314), 4))
-        return ret / 100.0
+        return self.read_long_tracer(int(0x3314), numberOfDecimals=2)
 
     #
     # Controller Clock related.
     #
     def get_ctl_rtclock_sec(self):
         """ Return the controller rtc seconds. """
-        return get_low_byte(self.read_register(int(0x9013), 0, 3))
+        return self.read_register_low_byte(int(0x9013), 0, 3)
 
     def get_ctl_rtclock_min(self):
         """ Return the controller rtc minutes. """
-        return get_high_byte(self.read_register(int(0x9013), 0, 3))
+        return self.read_register_high_byte(int(0x9013), 0, 3)
 
     def get_ctl_rtclock_hour(self):
         """ Return the controller rtc hours. """
-        return get_low_byte(self.read_register(int(0x9014), 0, 3))
+        return self.read_register_low_byte(int(0x9014), 0, 3)
 
     def get_ctl_rtclock_day(self):
         """ Return the controller rtc day of month. """
-        return get_high_byte(self.read_register(int(0x9014), 0, 3))
+        return self.read_register_high_byte(int(0x9014), 0, 3)
 
     def get_ctl_rtclock_month(self):
         """ Return the controller rtc month. """
-        return get_low_byte(self.read_register(int(0x9015), 0, 3))
+        return self.read_register_low_byte(int(0x9015), 0, 3)
 
     def get_ctl_rtclock_year(self):
         """ Return the controller rtc year. """
-        return get_high_byte(self.read_register(int(0x9015), 0, 3))
+        return self.read_register_high_byte(int(0x9015), 0, 3)
 
     def get_ctl_rtclock_time(self):
         """ Return the controller time as a time object. """

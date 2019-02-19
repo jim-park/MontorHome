@@ -7,9 +7,9 @@ __license__ = "Apache License, Version 2.0"
 import os
 import pty
 import unittest
+from time import struct_time
 
 # Import items under test.
-from tracerbn import switch_4_bytes
 from tracerbn import find_serial_port
 from tracerbn import TracerBN
 
@@ -55,15 +55,8 @@ class TestTracerBN(unittest.TestCase):
     #
     # Test driver utility functions.
     #
-    def test_switch_4_bytes(self):
-        """ Test switch_4_bytes() function. """
-        a = 0x89AB0000
-        b = 0x0000CDEF
-        correct_result = (a >> 16) | (b << 16)
-        self.assertEquals(switch_4_bytes(a | b), correct_result)
-
     def test_find_serial_port_exception(self):
-        """ Test find_serial_port() raises an exception if it can't find a device (present but no response). """
+        """ Test find_serial_port() raises an exception if it can't find a device (device present, but no response). """
         self.assertRaises(Exception, find_serial_port, ports_list=[self.fd_s_path])
 
     def test_find_serial_port_success(self):
@@ -73,50 +66,70 @@ class TestTracerBN(unittest.TestCase):
         returned_path = find_serial_port(ports_list=[self.fd_s_path])
         self.assertEqual(returned_path, self.fd_s_path)
 
+    def test_read_long_tracer_signed(self):
+        """ Test read_long_tracer() deals with a 4 byte signed value. """
+        self.mock_tracer.start()
+
+        value = self.driver.read_long_tracer(int(0x9990), signed=True)
+        self.assertIsWithinRange(value, -2147483648, 2147483647)
+
+    def test_read_long_tracer_unsigned(self):
+        """ Test read_long_tracer() deals with a 4 byte un-signed value. """
+        self.mock_tracer.start()
+
+        value = self.driver.read_long_tracer(int(0x9991))
+        self.assertIsWithinRange(value, 0, 4294967295)
+
+    def test_read_long_tracer_signed_4dp(self):
+        """ Test read_long_tracer() deals with a 4 byte signed value and 4 decimal places. """
+        self.mock_tracer.start()
+
+        value = self.driver.read_long_tracer(int(0x9992), numberOfDecimals=4, signed=True)
+        self.assertIsWithinRange(value, -214748.3648, 214748.3647)
+
+
     #
     # Test battery related methods.
     #
     def test_get_batt_voltage_success(self):
-        """ Test get_batt_voltage() method returns a value between 10.0 and 15.0. """
-        self.assertFuncIsWithinRange(self.driver.get_batt_voltage, 10.0, 15.0)
+        """ Test get_batt_voltage() method returns a value between 0.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_batt_voltage, 0.0, 655.35)
 
     def test_get_batt_current_success(self):
-        """ Test get_batt_current() method returns a value between -30.0 and 30.0. """
-        self.assertFuncIsWithinRange(self.driver.get_batt_current, -30.0, 30.0)
+        """ Test get_batt_current() method returns a value between -21474836.48 and 21474836.47"""
+        self.assertFuncIsWithinRange(self.driver.get_batt_current, -21474836.48, 21474836.47)
 
     def test_get_batt_power_success(self):
-        """ Test get_batt_power() method returns a value between 0.0 and 150.0. """
-        self.assertFuncIsWithinRange(self.driver.get_batt_power, 0.0, 150.0)
+        """ Test get_batt_power() method returns a value between 0.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_batt_power, 0.0, 655.35)
 
     def test_get_batt_temp_success(self):
-        """ Test get_batt_temp() method returns a value between -50.0 and 150.0. """
-        self.assertFuncIsWithinRange(self.driver.get_batt_temp, -50.0, 150.0)
+        """ Test get_batt_temp() method returns a value between -327.68 and 327.67. """
+        self.assertFuncIsWithinRange(self.driver.get_batt_temp, -327.68, 327.67)
 
     def test_get_batt_soc_success(self):
-        """ Test get_batt_soc() method returns a value between 0.0 and 100.0. """
-        self.assertFuncIsWithinRange(self.driver.get_batt_soc, 0, 100)
+        """ Test get_batt_soc() method returns a value between 0 and 65535. """
+        self.assertFuncIsWithinRange(self.driver.get_batt_soc, 0, 65535)
 
     def test_get_batt_voltage_max_today_success(self):
-        """ Test get_batt_voltage_max_today() method returns a value between 10.0 and 20.0. """
-        self.assertFuncIsWithinRange(self.driver.get_batt_voltage_max_today, 10.0, 20.0)
+        """ Test get_batt_voltage_max_today() method returns a value between 0.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_batt_voltage_max_today, 0.0, 655.35)
 
     def test_get_batt_voltage_min_today_success(self):
-        """ Test get_batt_voltage_min_today() method returns a value between 10.0 and 20.0. """
-        self.assertFuncIsWithinRange(self.driver.get_batt_voltage_min_today, 10.0, 20.0)
+        """ Test get_batt_voltage_min_today() method returns a value between 0.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_batt_voltage_min_today, 0.0, 655.35)
 
     def test_get_batt_rated_voltage(self):
         """ Test get_batt_rated_voltage() method returns a value between 12 and 240. """
-        self.assertFuncIsWithinRange(self.driver.get_batt_rated_voltage, 12, 240)
+        self.assertFuncIsWithinRange(self.driver.get_batt_rated_voltage, 0, 240)
 
     def test_get_batt_status_success(self):
         """ Test get_batt_status() method returns an array with the expected results. """
-
-        # Start the tracer.
         self.mock_tracer.start()
 
         returned_array = self.driver.get_batt_status()
-
         print returned_array
+
         # Test element0 - batt status - is within range 0 to 4.
         self.assertIsWithinRange(returned_array[0], 0, 4)
 
@@ -131,8 +144,6 @@ class TestTracerBN(unittest.TestCase):
 
     def test_get_charging_equip_status_success(self):
         """ Test get_charging_equip_status() method returns an array with the expected results. """
-
-        # Start the tracer.
         self.mock_tracer.start()
 
         returned_array = self.driver.get_charging_equip_status()
@@ -177,47 +188,111 @@ class TestTracerBN(unittest.TestCase):
     # Test Load related methods.
     #
     def test_get_load_current_success(self):
-        """ Test get_load_current() method returns a value between 0.0 and 30.0. """
-        self.assertFuncIsWithinRange(self.driver.get_load_current, 0.0, 30.0)
+        """ Test get_load_current() method returns a value between 0.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_load_current, 0.0, 655.35)
 
     def test_get_load_voltage_success(self):
-        """ Test get_load_voltage() method returns a value between 10.0 and 20.0. """
-        self.assertFuncIsWithinRange(self.driver.get_load_voltage, 0.0, 20.0)
+        """ Test get_load_voltage() method returns a value between 10.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_load_voltage, 0.0, 655.35)
 
     def test_get_load_power_success(self):
-        """ Test get_load_power() method returns a value between 0.0 and 360.0. """
-        self.assertFuncIsWithinRange(self.driver.get_load_power, 0.0, 360.0)
+        """ Test get_load_power() method returns a value between 0.0 and 42949672.95. """
+        self.assertFuncIsWithinRange(self.driver.get_load_power, 0.0, 42949672.95)
 
     #
     # Test PV related methods.
     #
     def test_get_pv_power(self):
-        """ Test get_pv_power() method returns a value between 0.0 and 1500.00. """
-        self.assertFuncIsWithinRange(self.driver.get_pv_power, 0.0, 1500.0)
+        """ Test get_pv_power() method returns a value between 0.0 and 42949672.95. """
+        self.assertFuncIsWithinRange(self.driver.get_pv_power, 0.0, 42949672.95)
 
     def test_get_pv_current(self):
-        """ Test get_pv_current() method returns a value between 0.0 and 50.00. """
-        self.assertFuncIsWithinRange(self.driver.get_pv_current, 0.0, 50.0)
+        """ Test get_pv_current() method returns a value between 0.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_pv_current, 0.0, 655.35)
 
     def test_get_pv_voltage(self):
-        """ Test get_pv_voltage() method returns a value between 0.0 and 150.00. """
-        self.assertFuncIsWithinRange(self.driver.get_pv_voltage, 0.0, 150.0)
+        """ Test get_pv_voltage() method returns a value between 0.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_pv_voltage, 0.0, 655.35)
 
     def test_get_pv_voltage_max_today(self):
-        """ Test get_pv_voltage_max_today() method returns a value between 0.0 and 150.00. """
-        self.assertFuncIsWithinRange(self.driver.get_pv_voltage_max_today, 0.0, 150.0)
+        """ Test get_pv_voltage_max_today() method returns a value between 0.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_pv_voltage_max_today, 0.0, 655.35)
 
     def test_get_pv_voltage_min_today(self):
-        """ Test get_pv_voltage_min_today() method returns a value between 0.0 and 150.00. """
-        self.assertFuncIsWithinRange(self.driver.get_pv_voltage_min_today, 0.0, 150.0)
+        """ Test get_pv_voltage_min_today() method returns a value between 0.0 and 655.35. """
+        self.assertFuncIsWithinRange(self.driver.get_pv_voltage_min_today, 0.0, 655.35)
+
+
+    #
+    # Test controller general parameters related methods.
+    #
+    def test_get_night_or_day(self):
+        """ Test get_night_or_day() returns a boolean value. """
+        self.assertFuncIsWithinRange(self.driver.get_night_or_day, 0, 1)
+
+    def test_get_energy_today(self):
+        """ Test get_energy_today() returns a value between 0.0 and 42949672.95. """
+        self.assertFuncIsWithinRange(self.driver.get_energy_today, 0.0, 42949672.95)
+
+    def test_get_energy_month(self):
+        """ Test get_energy_month() returns a value between 0.0 and 42949672.95. """
+        self.assertFuncIsWithinRange(self.driver.get_energy_month, 0.0, 42949672.95)
+
+    def test_get_energy_year(self):
+        """ Test get_energy_year() returns a value between 0.0 and 42949672.95. """
+        self.assertFuncIsWithinRange(self.driver.get_energy_year, 0.0, 42949672.95)
+
+    def test_get_energy_total(self):
+        """ Test get_energy_total() returns a value between 0.0 and 42949672.95. """
+        self.assertFuncIsWithinRange(self.driver.get_energy_total, 0.0, 42949672.95)
+
+    def test_get_co2_saved(self):
+        """ Test get_co2_saved() returns a value between 0.0 and 42949672.95. """
+        self.assertFuncIsWithinRange(self.driver.get_co2_saved, 0.0, 42949672.95)
+
+
+    #
+    # Controller Clock related.
+    #
+    def test_get_ctl_rtclock_sec(self):
+        """ Test get_ctl_rtclock_sec() returns a value between 0 and 59. """
+        self.assertFuncIsWithinRange(self.driver.get_ctl_rtclock_sec, 0, 59)
+
+    def test_get_ctl_rtclock_min(self):
+        """ Test get_ctl_rtclock_min() returns a value between 0 and 59. """
+        self.assertFuncIsWithinRange(self.driver.get_ctl_rtclock_min, 0, 59)
+
+    def test_get_ctl_rtclock_hour(self):
+        """ Test get_ctl_rtclock_hour() returns a value between 0 and 23. """
+        self.assertFuncIsWithinRange(self.driver.get_ctl_rtclock_hour, 0, 23)
+
+    def test_get_ctl_rtclock_day(self):
+        """ Test get_ctl_rtclock_day() returns a value between 1 and 31. """
+        self.assertFuncIsWithinRange(self.driver.get_ctl_rtclock_day, 1, 31)
+
+    def test_get_ctl_rtclock_month(self):
+        """ Test get_ctl_rtclock_month() returns a value between 1 and 12. """
+        self.assertFuncIsWithinRange(self.driver.get_ctl_rtclock_month, 1, 12)
+
+    def test_get_ctl_rtclock_year(self):
+        """ Test get_ctl_rtclock_year() returns a value between 0 and 99. """
+        self.assertFuncIsWithinRange(self.driver.get_ctl_rtclock_year, 0, 99)
+
+    def test_get_ctl_rtclock_time(self):
+        """ Test get_ctl_rtclock_time() returns an instance of a time.struct_time. """
+        # This functon will make 6 modbus requests; Y, M, D, h, m and seconds.
+        self.mock_tracer.num_of_requests = 6
+
+        self.mock_tracer.start()
+
+        t = self.driver.get_ctl_rtclock_time()
+        self.assertEqual(struct_time, type(t))
 
     #
     # Custom assert functions for similar tests.
     #
     def assertFuncIsWithinRange(self, funct, min_value, max_value):
         """ Test a driver method returns a value between a given range. """
-
-        # Start the tracer.
         self.mock_tracer.start()
 
         # Execute the driver method to fetch the result.
