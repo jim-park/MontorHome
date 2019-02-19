@@ -140,7 +140,6 @@ class TracerBN(minimalmodbus.Instrument):
         """ Return an array containing 12 elements indicating various charging status details. """
         statuses = int(self.read_register((int(0x3201)), 0, 4))
         # statuses contains 12 parameters to read (unpack) from various bits across the 2 bytes received.
-
         # Charging Equipment Running, comprises bit 0, it's a boolean. It indicates;
         #   (0) Normal | (1) Fault
         charging_equip_running = statuses & 0x0001
