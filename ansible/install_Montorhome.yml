@@ -1,5 +1,5 @@
 #
-# Install all files required to run MontorHome
+# Install all conf required to run MontorHome
 #
 
 - hosts: helga
@@ -49,13 +49,13 @@
     - name: copy supervisor Flask API configuration file to host
       become: yes
       copy:
-        src: ../raspi/init/files/mh_api_supervisor.conf
+        src: ../raspi/init/conf/mh_api_supervisor.conf
         dest: /etc/supervisor/conf.d/
 
     # Copy montorhome api logrotate configuration file
     - name: copy logrotate API configuration file to host
       become: yes
       copy:
-        src: ../raspi/init/files/mh_api_supervisor.conf
+        src: ../raspi/init/conf/mh_api_supervisor.conf
         dest: /etc/logrotate/conf.d/
 

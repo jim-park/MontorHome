@@ -2,7 +2,7 @@
 
 #######################################################################
 #
-#   Execute .tac files using twistd;
+#   Execute .tac conf using twistd;
 #     `twistd --pidfile=./<app_name>.pid -noy ./<app_name>.tac`
 #
 #      -noy; no-daemonise, no save state, run as python
