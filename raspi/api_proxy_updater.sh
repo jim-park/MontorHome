@@ -48,7 +48,7 @@ if [[ $# -eq 1 ]]; then
 else
     tolog "No proxy hostname supplied."
     tolog "Usage: $0 <proxy hostname>"
-    tolog "Exiting."
+    tolog "Exiting.\n"
     exit -1
 fi
 
@@ -66,38 +66,53 @@ grep -E "^[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}$" - <<<${current_ip_addres
 if [[ $? -ne 0 ]]; then
     tolog "Did not receive an IP address from ifconfig.co. Got:"
     tolog ${current_ip_address}
-    tolog "Exiting."
+    tolog "Exiting.\n"
     exit -1
 fi
 
 
 # Is there a difference between our recorded address and the reported address.
-diff ${EXISTING_IP_PATH} - <<<${current_ip_address}
+diff ${EXISTING_IP_PATH} - <<<${current_ip_address} 2>&1 > /dev/null
 
 # Check the return value of diff.
-if [[ "$?" = "0" ]]; then
-	tolog "IP address hasn't changed."
+if [[ "$?" = "1" ]]; then
+    tolog "IP address changed. New address is ${current_ip_address}."
+
+    #
+    # Use sed over shh to do an inline replacement of the external ip address.
+    #
+    cmd="sudo sed -E -i \"s/${SED_IP_REGEX}/${current_ip_address}/g\" ${PROXY_CONF_PATH}"
+    # Execute, log stderr and stdout.
+    ssh ${PROXY_SERVER} ${cmd} 2>&1 >> ${LOG_PATH}
+    if [[ $? -eq 0 ]]; then
+        tolog "Updated remote proxy address to $current_ip_address OK."
+    else
+        tolog "Failed to updated remote config."
+    fi
+
+    #
+    # Reload httpd.
+    # Archive the old IP address for prosperity.
+    #
+    cmd="sudo ${HTTPD_PATH} reload"
+    # Execute, log stderr and stdout.
+    ssh ${PROXY_SERVER} ${cmd} 2>&1 >> ${LOG_PATH}
+    if [[ $? -eq 0 ]]; then
+        tolog "Reloaded httpd OK."
+
+        # Move old address to dated file.
+        archive_f_name=$(date +"%F-%H-%M-%S")_ip_addr
+        cmd="mv ${EXISTING_IP_PATH} ${BASE_PATH}/run/${archive_f_name}"
+        ${cmd} && tolog "Archived old ip address to ${archive_f_name}."
+
+        # Write new IP address to existing_ip_address file.
+        echo ${current_ip_address} > ${EXISTING_IP_PATH}
+    else
+        tolog "Failed to reload remote httpd."
+    fi
+
 else
-	tolog "IP address changed. New address is ${current_ip_address}."
-
-	# Move old address to dated file for prosperity.
-	archive_f_name=$(date +"%F-%H-%M-%S")_ip_addr
-	cmd="mv ${EXISTING_IP_PATH} ${BASE_PATH}/run/${archive_f_name}"
-	# Execute and log.
-	${cmd} && tolog "Archived old ip address to ${archive_f_name}."
-
-	# Write new external address to existing_ip_address file
-	echo ${current_ip_address} > ${EXISTING_IP_PATH}
-
-	# Use sed to do an inline replacement of the external ip address in the proxy conf file (capturing stderr and stdout to log).
-	cmd="ssh ${PROXY_SERVER} sudo sed -E -i "s/${SED_IP_REGEX}/${current_ip_address}/g"  ${PROXY_CONF_PATH} 2>&1 >> ${LOG_PATH}"
-	# Execute and log.
-	${cmd} && tolog "Updated remote proxy address to $current_ip_address OK."
-
-	# Reload httpd (capturing stderr and stdout to log).
-	cmd="ssh ${PROXY_SERVER} sudo ${HTTPD_PATH} reload 2>&1 >> ${LOG_PATH}"
-	# Execute and log.
-	${cmd} && tolog "Reloaded httpd OK."
+    tolog "IP address hasn't changed."
 fi
 
 tolog "External IP address updater end."
