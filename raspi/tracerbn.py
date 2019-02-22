@@ -151,7 +151,7 @@ class TracerBN(minimalmodbus.Instrument):
         # statuses contains 12 parameters to read (unpack) from various bits across the 2 bytes received.
 
         # Charging Equipment Running, comprises bit 0, it's a boolean. It indicates;
-        #   (0) Normal | (1) Fault
+        #   (0) Standby | (1) Running
         charging_equip_running = statuses & 0x0001
 
         # Charging Equipment Status, comprises bit 1, it's a boolean. It indicates;
@@ -160,11 +160,11 @@ class TracerBN(minimalmodbus.Instrument):
 
         # Charging Status, comprises bits 2-3, holds the values 0-3. It indicates;
         #   (0) No Charging | (1) Float | (2) Boost | (3) Equalisation
-        charging_status = (statuses & 0x000C) >> 3
+        charging_status = (statuses & 0x000C) >> 2
 
         # PV Input is Short, comprises bit 4. It's a boolean. It indicates;
         #   (0) Normal | (1) Short
-        pv_input_short = (statuses & 0x0040) >> 4
+        pv_input_short = (statuses & 0x0010) >> 4
 
         # Load MOSFET is Short, comprises bit 7. It's a boolean. It indicates;
         #   (0) Normal | (1) Short

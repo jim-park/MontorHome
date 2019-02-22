@@ -7,6 +7,7 @@ __license__ = "Apache License, Version 2.0"
 import tracerbn
 import time
 from flask import Flask
+import json
 
 app = Flask(__name__)
 serial_port = None
@@ -67,6 +68,21 @@ def batt_soc():
     return "%s" % safe_tracer().get_batt_soc()
 
 
+@app.route('/batt_status')
+def batt_status():
+    return "%s" % json.dumps(safe_tracer().get_batt_status())
+
+
+@app.route('/batt_rated_capacity')
+def batt_rated_capacity():
+    return "%s" % safe_tracer().get_batt_rated_capacity()
+
+
+@app.route('/batt_rated_voltage')
+def batt_rated_voltage():
+    return "%s" % safe_tracer().get_batt_rated_voltage()
+
+
 
 #
 # PV info
@@ -114,6 +130,9 @@ def load_power():
     return "%s" % safe_tracer().get_load_power()
 
 
+#
+# Controller clock.
+#
 @app.route('/set_clock')
 def set_clock():
     return "%s" % safe_tracer().set_ctl_rtclock_localtime()
@@ -155,6 +174,12 @@ def energy_day():
 @app.route('/co2_saved')
 def co2_saved():
     return "%s" % safe_tracer().get_co2_saved()
+
+
+@app.route('/charging_equip_status')
+def charging_equip_status():
+    return "%s" % json.dumps(safe_tracer().get_charging_equip_status())
+
 
 
 if __name__ == '__main__':
