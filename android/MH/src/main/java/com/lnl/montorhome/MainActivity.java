@@ -1,8 +1,10 @@
 package com.lnl.montorhome;
 
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
+import android.content.BroadcastReceiver;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
@@ -41,7 +43,7 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         // Set Content View
         setContentView(R.layout.activity_main);
 
-        // Setup Preferences and Preference Change Listener
+        // Setup Preferences.
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext());
 
         // Setup Action Bar
@@ -71,6 +73,14 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
                 }
             }
         });
+
+        /*
+         * Setup Wifi change Broadcast Receiver
+         */
+        BroadcastReceiver broadcastReceiver = new NetworkChangeBroadcastReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        this.getApplicationContext().registerReceiver(broadcastReceiver, intentFilter);
     }
 
     /*

@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <EditTextPreference
-        android:id="@+id/api_server_addr"
-        android:key="key_api_server_addr"
-        android:title="Server Address"
-        android:summary="Internet address of the MontorHome api server"
-        android:defaultValue="linuxnetworks.co.uk" />
+        android:id="@+id/api_cloud_server_addr"
+        android:key="key_api_cloud_server_addr"
+        android:title="Cloud Server Address"
+        android:summary="Address of the MontorHome system cloud API server"
+        android:defaultValue="www.linuxnetworks.co.uk/data" />
+
+    <EditTextPreference
+        android:id="@+id/api_lan_server_addr"
+        android:key="key_api_lan_server_addr"
+        android:title="WiFi Server Address"
+        android:summary="Address of the MontorHome system local API server"
+        android:defaultValue="192.168.8.98:21001" />
+
+    <EditTextPreference
+        android:id="@+id/wlan_ssid"
+        android:key="key_wlan_ssid"
+        android:title="System WiFi Name (SSID)"
+        android:summary="SSID of the MontorHome system WiFi network."
+        android:defaultValue="HELL_GA" />
 
 </PreferenceScreen>

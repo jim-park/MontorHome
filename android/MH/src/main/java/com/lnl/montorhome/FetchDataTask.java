@@ -10,7 +10,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
- /**
+/**
  * Created by James Park
  * email: jim@linuxnetworks.co.uk
  * Date: 28/01/19.
@@ -25,8 +25,6 @@ public class FetchDataTask extends AsyncTask<String, Void, FetchDataTask.Wrapper
         String data = "";
         String type = "";
     }
-    private static final String API_URL0 = "http://188.30.45.248:21001/";
-    private static final String API_URL1 = "http://192.168.8.98:21001/";
     private AsyncResponse delegate = null;
     private Context appContext;
     private Wrapper wrapper =new Wrapper();
@@ -54,11 +52,19 @@ public class FetchDataTask extends AsyncTask<String, Void, FetchDataTask.Wrapper
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(appContext);
 
         try {
-            // Retrieve API server address from preferences and build the url.
-            url = new URL("http://" + prefs.getString("key_api_server_addr", "NOTFOUND") + params[0]);
+            // Retrieve the API server local WLAN network address info from preferences.
+            String api_addr = prefs.getString("key_api_lan_server_addr", "NOTFOUND");
+
+            // Change the API server url to the cloud address if we are not on the system WLAN.
+            if(!NetworkChangeBroadcastReceiver.connectedToSystemLAN())
+                api_addr = prefs.getString("key_api_cloud_server_addr", "NOTFOUND");
+
+            // Build, log, open, the API url.
+            url = new URL("http://" + api_addr + "/" + params[0]);
             Log.d("INFO", "Opening URL: " + url);
             urlConnection = (HttpURLConnection) url.openConnection();
 
+            // Read response.
             try {
                 BufferedReader bufferReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
                 StringBuilder stringBuilder = new StringBuilder();
