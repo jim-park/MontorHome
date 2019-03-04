@@ -24,7 +24,7 @@ public class NetworkChangeBroadcastReceiver extends BroadcastReceiver {
 
         // Retreive the system WLAN name from preferences.
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
-        String desired_wlan_ssid = prefs.getString("wlan_ssid", "WLAN NOT SET");
+        String desired_wlan_ssid = prefs.getString("key_wlan_ssid", "WLAN NOT SET");
 
         // Retreive parcelled NetworkInfo object.
         NetworkInfo netInfo = intent.getParcelableExtra("networkInfo");
@@ -36,6 +36,7 @@ public class NetworkChangeBroadcastReceiver extends BroadcastReceiver {
 
         Log.d(TAG, "netState: " + netState);
         Log.d(TAG, "netSSID: " + netSSID);
+        Log.d(TAG, "desired netSSID: " + desired_wlan_ssid);
         Log.d(TAG, "netType: " + netType);
 
         // Test if we are connected to our system WLAN.
