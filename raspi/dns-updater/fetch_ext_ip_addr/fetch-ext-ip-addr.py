@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+__author__ = "James Park, Linux Networks Ltd"
+__email__ = "jim@linuxnetworks.co.uk"
+__license__ = "Apache License, Version 2.0"
+
+
 import urllib2
 import time
 import re

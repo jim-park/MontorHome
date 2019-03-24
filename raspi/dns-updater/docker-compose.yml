@@ -1,3 +1,26 @@
+# ====================================================================================================================
+#
+# Script Name:      docker-compose.yml
+#
+# Author:           James Park, Linux Networks Ltd.
+# Date:             24/03/19
+#
+# Description:      The following docker-compose file defines an application stack named 'dns-updater' composed of
+#                   4 microservices. The stack monitors the external IP address (as seen by the internet) of the
+#                   device it's running on, if the IP address changes, a domain on a DNS server is updated to
+#                   reflect the changed IP address.
+#
+# Run Information:  This application stack requires a docker secret named 'aws-credentials' to be present on the
+#                   swarm host.
+#                   The secrets file should be mounted to /run/secrets/ and must be in the following format;
+#
+#                   [aws]
+#                   aws_hosted_zone_id      : <hostedzoneid>
+#                   aws_access_key_id       : <accesskeyid>
+#                   aws_secret_access_key   : <secretaccesskey>
+#
+# ====================================================================================================================
+
 version: "3.3"
 services:
   fetch-ext-ip-addr:

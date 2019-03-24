@@ -1,27 +1,39 @@
-# Use an official Python runtime as a parent image
-FROM 		python:2.7-slim
-#FROM        balenalib/raspberrypi3-alpine-python
+# ====================================================================================================================
+#
+# Script Name:      Dockerfile
+#
+# Author:           James Park, Linux Networks Ltd.
+# Date:             24/03/19
+#
+# Description:      The following Dockerfile defines a simple image to run the microservice 'main.py'.
+#
+# Run Information:  This image is intended to be run as part of the 'dns-updater' application stack.
+#
+# ====================================================================================================================
 
-# Set the working directory to /app
+
+# Use an official Python runtime as a parent image.
+FROM 		python:2.7-slim
+
+# Set the working directory to /app.
 WORKDIR 	/app
 
-# Copy python dependencies into the container at /app
+# Copy python dependencies into the container at /app.
 COPY        requirements.txt /app
 
-# Install any needed packages specified in requirements.txt
+# Install any needed packages specified in requirements.txt.
 RUN         pip install --trusted-host pypi.python.org -r requirements.txt
 
+# Copy all python files into /app.
 COPY        *.py /app
 
-# Make port 80 available to the world outside this container
-#EXPOSE 80
-
+# Make all python files executable by users.
 RUN         chmod u+x *.py
 
-# Define environment variable
+# Define environment variables.
 ENV         NAME main
+# Don't allow python to buffer it's output.
 ENV         PYTHONUNBUFFERED True
 
-# Run the MH API
+# Run the executable.
 CMD         ["./main.py"]
-#CMD          ["/bin/bash"]
