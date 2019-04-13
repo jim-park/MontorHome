@@ -331,6 +331,74 @@ class TracerBN(minimalmodbus.Instrument):
         year = int(time.strftime("%y", t))      # Tracer expects a 2 digit year.
         return self.set_ctl_rtclock(year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
 
+    #
+    # Convenience functions to fetch groups of data (which is efficient).
+    #
+    def get_group0(self):
+        """ Return a 7-tuple of data points.
+            ( PV input voltage,
+              PV imput current,
+              PV input power,
+              Load voltage,
+              Load power,
+              Battery temperature,
+              Controller temperature )
+
+        """
+
+        regs = self.read_registers(int(0x3100), 20, 4)
+
+        # PV input voltage
+        data0 = regs[0] / 100.0
+
+        # PV input current
+        data1 = regs[1] / 100.0
+
+        # PV input power (H & L bytes)
+        data2 = (regs[3] << 16 | regs[2]) / 100.0
+
+        # Battery power (WRONG data, same as PV power!)
+        # data3 = ((int(regs[6]) & 0x0000FFFF) | ((int(regs[7]) & 0x0000FFFF) << 16)) / 100.0
+
+        # Load voltage
+        data4 = regs[12] / 100.0
+
+        # Load current
+        data5 = regs[13] / 100.0
+
+        # Load power (H & L bytes)
+        data6 = (regs[15] << 16 | regs[14]) / 100.0
+
+        # Battery temperature
+        data7 = regs[16] / 100.0
+
+        # Controller temperature
+        data8 = regs[17] / 100.0
+
+        # Return all the data in an ordered array
+        return data0, data1, data2, data4, data5, data6, data7, data8
+
+    def get_group1(self):
+        """ Returns a 2-tuple of pata points.
+            ( Battery voltage,
+              Battery current )
+        """
+
+        regs = self.read_registers(int(0x331A), 3, 4)
+
+        # Battery voltage
+        data0 = regs[0] / 100.0
+
+        # Battery current (signed value)
+        data1 = regs[2] << 16 | regs[1]
+
+        # Compute the 2's complement of data.
+        if data1 & (1 << (32 - 1)) != 0:
+            data1 = data1 - (1 << 32)  # compute negative value
+
+        data1 = data1 / 100.0
+
+        return data0, data1
 
 #
 # Interrogate serial ports for a TracerBN device.

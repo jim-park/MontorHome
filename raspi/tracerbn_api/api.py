@@ -181,6 +181,18 @@ def charging_equip_status():
     return "%s" % json.dumps(safe_tracer().get_charging_equip_status())
 
 
+#
+# Groups of data points.
+#
+@app.route('/group0')
+def group0():
+    return "%s" % json.dumps(safe_tracer().get_group0())
+
+
+@app.route('/group1')
+def group1():
+    return "%s" % json.dumps(safe_tracer().get_group1())
+
 
 if __name__ == '__main__':
 
