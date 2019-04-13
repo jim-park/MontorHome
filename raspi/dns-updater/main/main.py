@@ -112,7 +112,7 @@ def main():
 
             if actual_ext_ip_addr and cached_ip:
 
-                # If there's been a change of extrnal IP address, kick off a DNS server update.
+                # External IP address change detected. Kick off a DNS server update.
                 if actual_ext_ip_addr != cached_ip:
                     print "DNS update required."
 
@@ -127,6 +127,12 @@ def main():
                 else:
                     print "DNS records up to date (%s). No update required." % actual_ext_ip_addr
 
+            else:
+                # We failed to get either the actual external or cached IP address.
+                # An exception (above) should contain the error.
+                print "Failed to determine if DNS update is required."
+                print "External IP address: %s" % actual_ext_ip_addr
+                print "Cached external IP address: %s" % cached_ip
 
             # Reset timmer if we don't need to retry.
             if not retry:
