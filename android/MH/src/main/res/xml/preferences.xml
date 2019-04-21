@@ -5,7 +5,7 @@
         android:key="key_api_cloud_server_addr"
         android:title="Cloud Server Address"
         android:summary="Address of the MontorHome system cloud API server"
-        android:defaultValue="www.linuxnetworks.co.uk/data" />
+        android:defaultValue="remote.linuxnetworks.co.uk:21001" />
 
     <EditTextPreference
         android:id="@+id/api_lan_server_addr"
