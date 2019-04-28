@@ -25,10 +25,10 @@ COPY        requirements.txt /app
 RUN         pip install --trusted-host pypi.python.org -r requirements.txt
 
 # Copy all python files into /app.
-COPY        *.py /app
+COPY        *.py /app/
 
 # Make port 80 available to the world outside this container.
-EXPOSE 80
+EXPOSE      80
 
 # Make all python files executable by users.
 RUN         chmod u+x /app/*.py
@@ -39,4 +39,4 @@ ENV         NAME fetch-ext-ip-addr
 ENV         PYTHONUNBUFFERED True
 
 # Run the executable.
-CMD         ["./fetch-ext-ip-addr.py"]
+CMD         ["./fetch_ext_ip_addr.py"]

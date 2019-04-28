@@ -23,7 +23,7 @@ config.read("/dns-updater-conf")
 dbhost = os.getenv('DBHOST', 'redis')
 fetch_ext_ip_api_url = os.getenv('FETCHEXTIPHOSTURL', 'http://fetch-ext-ip-addr/do')
 
-# Initialise redis connectionpool.
+# Initialise redis connection pool.
 redis = Redis(host=dbhost, db=0, socket_connect_timeout=2, socket_timeout=2)
 
 # Load config
@@ -46,34 +46,53 @@ request = urllib2.Request(fetch_ext_ip_api_url)
 
 # Waits for cache db to become active.
 def connect_to_db():
-    success = False
-    while not success == True:
+    retries = 3
+
+    while retries > 0:
         try:
-            success = redis.ping()
-            print "Connected to cache db"
+            redis.ping()
         except RedisError as e:
-            print "Failed to connect to cache db. %s" % e
-            print "Will retry connection in %s secs." % db_conn_retry_period
-            sleep(db_conn_retry_period)
+            print "Couldn't connect to cache db. {0}".format(e)
+            retries = retries - 1
+            if retries > 0:
+                print "Will retry db connection in {0} secs.".format(db_conn_retry_period)
+                sleep(db_conn_retry_period)
+        else:
+            print "Connected to cache db"
+            break
+
+    if retries <= 0:
+        raise Exception("Failed to connect to cache db.")
 
 
-# On startup (or DB reset). Initialise cache value to reflect resolved DNS value.
 def init_cache():
-    resolved_ip_addr = socket.gethostbyname(domain_name)
+    """ On startup or DB reset. Initialise cache value to reflect resolved DNS value. """
+
+    try:
+        resolved_ip_addr = socket.gethostbyname(domain_name)
+    except socket.error as e:
+        raise Exception("Failed to resolve domain name. e: {0}".format(e))
+
+    try:
+        connect_to_db()
+    except Exception as e:
+        raise e
+
     try:
         redis.set(domain_name, resolved_ip_addr)
-        print "setting cached ip: %s" % resolved_ip_addr
     except RedisError as e:
-        connect_to_db()
+        raise e
+    else:
+        print "cached IP address set to: {0}".format(resolved_ip_addr)
+
+    return resolved_ip_addr
 
 
 #
 # Main
 #
 def main():
-    print "Running."
     global check_period
-
 
     # Setup period timer.
     now = datetime.now
@@ -85,66 +104,56 @@ def main():
         # Execute this block every 'delta' seconds.
         if start + delta < now():
             # Initialise variables.
-            retry = False
             actual_ext_ip_addr = False
             cached_ip = False
 
-
-            # Fetch our external ip address from containerised Flask app.
             try:
-                actual_ext_ip_addr = urllib2.urlopen(request).read()
-            except (URLError, socket.error) as e:
-                print "Failed to get external IP address. Is 'fetch-ext-ip-addr' container running? Will retry."
-                retry = True
 
+                # Fetch our external ip address from containerised Flask app.
+                try:
+                    response = urllib2.urlopen(request)
+                except (socket.error, URLError) as e:
+                    raise Exception("Failed to get external IP address from container url '{1}'. e: {0}".format(e, fetch_ext_ip_api_url))
+                else:
+                    actual_ext_ip_addr = response.read()
 
-            # Retreive our cached IP address from redis DB.
-            try:
-                cached_ip = redis.get(domain_name)
-                # Initial run, or the db got reset ... for some reaseon.
-                if not cached_ip:
-                    init_cache()
+                # Retrieve our cached IP address from redis DB.
+                try:
                     cached_ip = redis.get(domain_name)
-            except RedisError as e:
-                print "Failed to get cached IP address. Will retry."
-                retry = True
+                except RedisError:
+                    try:
+                        cached_ip = init_cache()
+                    except Exception as e:
+                        raise Exception("Failed to get cached IP address. e: {0}".format(e))
 
-
-            if actual_ext_ip_addr and cached_ip:
-
-                # External IP address change detected. Kick off a DNS server update.
                 if actual_ext_ip_addr != cached_ip:
                     print "DNS update required."
+                    print "Publishing '{0}' on channel '{1}'.".format(actual_ext_ip_addr, domain_name)
 
-                    print "Publishing '%s' on channel '%s'." % (actual_ext_ip_addr, domain_name)
                     try:
                         redis.publish(domain_name, actual_ext_ip_addr)
                     except RedisError as e:
-                        print "Failed to publish '%s' on channel '%s'. Will retry. %s" % (actual_ext_ip_addr, domain_name, e)
-                        retry = True
+                        raise Exception("Failed to publish '{0}' on channel '{1}'. e: {2}".format(actual_ext_ip_addr, domain_name, e))
 
                 # External IP address remains the same. No action.
                 else:
-                    print "DNS records up to date (%s). No update required." % actual_ext_ip_addr
+                    print "DNS records up to date ({0}). No update required.".format(cached_ip)
 
-            else:
+            except Exception as e:
                 # We failed to get either the actual external or cached IP address.
                 # An exception (above) should contain the error.
                 print "Failed to determine if DNS update is required."
-                print "External IP address: %s" % actual_ext_ip_addr
-                print "Cached external IP address: %s" % cached_ip
+                print "reason - {0}".format(e)
+                print "  External IP address:        {0}".format(actual_ext_ip_addr)
+                print "  Cached external IP address: {0}".format(cached_ip)
 
-            # Reset timmer if we don't need to retry.
-            if not retry:
+            finally:
+                # Reset timer, re-read config and update delta period.
                 start = now()
-                # Re-read config, Update delta period.
                 config.read('/dns-updater-conf')
-                check_period = config.getint("main", 'check_period')
-                delta = timedelta(seconds=check_period)
-
+                delta = timedelta(seconds=config.getint("main", 'check_period'))
 
         # Take it easy around this loop.
-        # This delay limits the retry rate.
         sleep(5.0)
 
 
