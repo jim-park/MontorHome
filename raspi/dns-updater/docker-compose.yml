@@ -68,6 +68,12 @@ services:
     deploy:
       placement:
         constraints: [node.role == manager]
+    volumes:
+      - type: volume
+        source: cachedata
+        target: /data
+        volume:
+          nocopy: true
     command: redis-server --appendonly yes
     networks:
       - updater-net
@@ -79,3 +85,5 @@ configs:
 secrets:
   aws-credentials:
     external: true
+volumes:
+  cachedata:
