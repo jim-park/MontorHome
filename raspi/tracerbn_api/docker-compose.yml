@@ -1,0 +1,10 @@
+version: '2'
+services:
+  mh_api:
+    build: .
+    image: linuxnetworks/mh_api:1.2
+    ports:
+     - "21001:21001"
+    devices:
+     - "/dev/ttyUSB0:/dev/ttyUSB0"
+    restart: on-failure     
