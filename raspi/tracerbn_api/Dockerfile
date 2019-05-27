@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:2.7
+FROM python:2.7-slim
 
 # Copy the current directory contents into the container at /app
 #ADD . /app
@@ -8,12 +8,15 @@ FROM python:2.7
 WORKDIR /app
 
 RUN apt-get update
-RUN apt-get -y install nginx supervisor
+RUN apt-get -y install nginx supervisor gcc
 
 # Install any needed packages specified in requirements.txt
 COPY requirements.txt /app
 
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
+
+# All packages built, remove gcc.
+RUN apt-get remove gcc -y
 
 RUN useradd --no-create-home -G dialout nginx
 
