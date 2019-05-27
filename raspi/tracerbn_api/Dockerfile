@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:2.7-slim
+FROM python:2.7
 
 # Copy the current directory contents into the container at /app
 #ADD . /app
@@ -8,11 +8,10 @@ FROM python:2.7-slim
 WORKDIR /app
 
 RUN apt-get update
-RUN apt-get -y install nginx supervisor gcc
+RUN apt-get -y install nginx supervisor
 
 # Install any needed packages specified in requirements.txt
 COPY requirements.txt /app
-COPY *.py /app/
 
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
 
@@ -22,6 +21,7 @@ RUN rm /etc/nginx/sites-enabled/default
 RUN rm -r /root/.cache
 
 
+COPY *.py /app/
 COPY nginx.conf /etc/nginx/
 COPY flask-site-nginx.conf /etc/nginx/conf.d/
 COPY uwsgi.ini /etc/uwsgi/
@@ -31,7 +31,7 @@ COPY supervisord.conf /etc/
 EXPOSE 21001:21001
 
 # Define environment variable
-ENV NAME tracerbn_api
+ENV NAME mh_api
 
 # Set proxy server, replace host:port with values for your servers 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]

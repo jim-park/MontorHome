@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 __author__ = "James Park"
 __email__ = "jim@linuxnetworks.co.uk"
@@ -8,10 +8,18 @@ import tracerbn
 import time
 from flask import Flask
 import json
-
+from prometheus_client import Gauge, Summary, start_http_server, make_wsgi_app
+from werkzeug.wsgi import DispatcherMiddleware
 app = Flask(__name__)
 serial_port = None
 
+batt_soc_gauge = Gauge('battery_state_of_charge_percentage', "Battery SOC as a percentage")
+batt_volt_gauge = Gauge('battery_voltage_volts', "Battery voltage in Volts")
+batt_power_gauge = Gauge('battery_power_watts', "Battery power in Watts")
+batt_curr_gauge = Gauge('battery_current_amperes', "Battery current in Amperes")
+pv_volt_gauge = Gauge('pv_voltage_volts', "PV voltage in Volts")
+pv_power_gauge = Gauge('pv_power_watts', "PV power in Watts")
+pv_curr_gauge = Gauge('pv_current_amperes', "PV current in Amperes")
 
 def safe_tracer():
     global serial_port
@@ -29,14 +37,19 @@ def safe_tracer():
     # If we've reached here we've failed. Exit and let supervisor restart us.
     exit(-1)
 
+app_dispatch = DispatcherMiddleware(app, {
+  '/metrics': make_wsgi_app()
+})
 
 #
 # Battery info
 #
 @app.route('/batt_voltage')
 def batt_voltage():
-    return "%s" % safe_tracer().get_batt_voltage()
-
+    global batt_volt_gauge
+    tmp = safe_tracer().get_batt_voltage()
+    batt_volt_gauge.set(tmp)
+    return "%s" % tmp
 
 @app.route('/batt_voltage_max')
 def batt_voltage_max():
@@ -50,12 +63,18 @@ def batt_voltage_min():
 
 @app.route('/batt_current')
 def batt_current():
-    return "%s" % safe_tracer().get_batt_current()
+    global batt_curr_gauge
+    tmp = safe_tracer().get_batt_current()
+    batt_curr_gauge.set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/batt_power')
 def batt_power():
-    return "%s" % safe_tracer().get_batt_power()
+    global batt_power_gauge
+    tmp = safe_tracer().get_batt_power()
+    batt_power_gauge.set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/batt_temperature')
@@ -65,7 +84,10 @@ def batt_temperature():
 
 @app.route('/batt_soc')
 def batt_soc():
-    return "%s" % safe_tracer().get_batt_soc()
+    global batt_soc_gauge
+    tmp = safe_tracer().get_batt_soc()
+    batt_soc_gauge.set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/batt_status')
@@ -89,7 +111,10 @@ def batt_rated_voltage():
 #
 @app.route('/pv_voltage')
 def pv_voltage():
-    return "%s" % safe_tracer().get_pv_voltage()
+    global pv_volt_gauge
+    tmp = safe_tracer().get_pv_voltage()
+    pv_volt_gauge.set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/pv_voltage_max')
@@ -104,12 +129,18 @@ def pv_voltage_min():
 
 @app.route('/pv_current')
 def pv_current():
-    return "%s" % safe_tracer().get_pv_current()
+    global pv_curr_gauge
+    tmp = safe_tracer().get_pv_current()
+    pv_curr_gauge.set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/pv_power')
 def pv_power():
-    return "%s" % safe_tracer().get_pv_power()
+    global pv_power_gauge
+    tmp = safe_tracer().get_pv_power()
+    pv_power_gauge.set(tmp)
+    return "%s" % tmp
 
 
 #
@@ -181,24 +212,13 @@ def charging_equip_status():
     return "%s" % json.dumps(safe_tracer().get_charging_equip_status())
 
 
-#
-# Groups of data points.
-#
-@app.route('/group0')
-def group0():
-    return "%s" % json.dumps(safe_tracer().get_group0())
-
-
-@app.route('/group1')
-def group1():
-    return "%s" % json.dumps(safe_tracer().get_group1())
-
 
 if __name__ == '__main__':
 
     try:
         # Detect which serial port the TracerBN is connected to.
         serial_port = tracerbn.find_serial_port()
+        start_http_server(8000)
         app.run(debug=False, port=21001, host='0.0.0.0', threaded=False)
     except Exception as e:
         print "ERROR: Exiting: %s" % e
