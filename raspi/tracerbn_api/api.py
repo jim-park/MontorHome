@@ -13,6 +13,10 @@ from werkzeug.wsgi import DispatcherMiddleware
 app = Flask(__name__)
 serial_port = None
 
+
+
+instantaneous_metrics = Gauge('mh_api_instantaneous', 'Endpoint Instantaneous Voltage', ['endpoint', 'quantity'])
+
 batt_soc_gauge = Gauge('battery_state_of_charge_percentage', "Battery SOC as a percentage")
 batt_volt_gauge = Gauge('battery_voltage_volts', "Battery voltage in Volts")
 batt_power_gauge = Gauge('battery_power_watts', "Battery power in Watts")
@@ -49,16 +53,21 @@ def batt_voltage():
     global batt_volt_gauge
     tmp = safe_tracer().get_batt_voltage()
     batt_volt_gauge.set(tmp)
+    instantaneous_metrics.labels(endpoint='battery', quantity='voltage').set(tmp)
     return "%s" % tmp
 
 @app.route('/batt_voltage_max')
 def batt_voltage_max():
-    return "%s" % safe_tracer().get_batt_voltage_max_today()
+    tmp = safe_tracer().get_batt_voltage_max_today()
+    instantaneous_metrics.labels(endpoint='battery_max_today', quantity='voltage').set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/batt_voltage_min')
 def batt_voltage_min():
-    return "%s" % safe_tracer().get_batt_voltage_min_today()
+    tmp = safe_tracer().get_batt_voltage_min_today()
+    instantaneous_metrics.labels(endpoint='battery_min_today', quantity='voltage').set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/batt_current')
@@ -66,6 +75,7 @@ def batt_current():
     global batt_curr_gauge
     tmp = safe_tracer().get_batt_current()
     batt_curr_gauge.set(tmp)
+    instantaneous_metrics.labels(endpoint='battery', quantity='current').set(tmp)
     return "%s" % tmp
 
 
@@ -74,6 +84,7 @@ def batt_power():
     global batt_power_gauge
     tmp = safe_tracer().get_batt_power()
     batt_power_gauge.set(tmp)
+    instantaneous_metrics.labels(endpoint='battery', quantity='power').set(tmp)
     return "%s" % tmp
 
 
@@ -102,7 +113,9 @@ def batt_rated_capacity():
 
 @app.route('/batt_rated_voltage')
 def batt_rated_voltage():
-    return "%s" % safe_tracer().get_batt_rated_voltage()
+    tmp = safe_tracer().get_batt_rated_voltage()
+    instantaneous_metrics.labels(endpoint="battery_rated", quantity='voltage').set(tmp)
+    return "%s" % tmp
 
 
 
@@ -114,24 +127,29 @@ def pv_voltage():
     global pv_volt_gauge
     tmp = safe_tracer().get_pv_voltage()
     pv_volt_gauge.set(tmp)
+    instantaneous_metrics.labels(endpoint="pv", quantity='voltage').set(tmp)
     return "%s" % tmp
 
 
 @app.route('/pv_voltage_max')
 def pv_voltage_max():
-    return "%s" % safe_tracer().get_pv_voltage_max_today()
+    tmp = safe_tracer().get_pv_voltage_max_today()
+    instantaneous_metrics.labels(endpoint="pv_max_today", quantity='voltage').set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/pv_voltage_min')
 def pv_voltage_min():
-    return "%s" % safe_tracer().get_pv_voltage_min_today()
+    tmp = safe_tracer().get_pv_voltage_min_today()
+    instantaneous_metrics.labels(endpoint="pv_min_today", quantity='voltage').set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/pv_current')
 def pv_current():
-    global pv_curr_gauge
     tmp = safe_tracer().get_pv_current()
     pv_curr_gauge.set(tmp)
+    instantaneous_metrics.labels(endpoint='pv', quantity='current').set(tmp)
     return "%s" % tmp
 
 
@@ -140,6 +158,7 @@ def pv_power():
     global pv_power_gauge
     tmp = safe_tracer().get_pv_power()
     pv_power_gauge.set(tmp)
+    instantaneous_metrics.labels(endpoint='pv', quantity='power').set(tmp)
     return "%s" % tmp
 
 
@@ -148,17 +167,23 @@ def pv_power():
 #
 @app.route('/load_voltage')
 def load_voltage():
-    return "%s" % safe_tracer().get_load_voltage()
+    tmp = safe_tracer().get_load_voltage()
+    instantaneous_metrics.labels(endpoint="load", quantity='voltage').set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/load_current')
 def load_current():
-    return "%s" % safe_tracer().get_load_current()
+    tmp = safe_tracer().get_load_current()
+    instantaneous_metrics.labels(endpoint='load', quantity='current').set(tmp)
+    return "%s" % tmp
 
 
 @app.route('/load_power')
 def load_power():
-    return "%s" % safe_tracer().get_load_power()
+    tmp = safe_tracer().get_load_power()
+    instantaneous_metrics.labels(endpoint='load', quantity='power').set(tmp)
+    return "%s" % tmp
 
 
 #
