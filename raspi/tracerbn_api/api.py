@@ -8,14 +8,15 @@ import tracerbn
 import time
 from flask import Flask
 import json
-from prometheus_client import Gauge, Summary, start_http_server, make_wsgi_app
+from prometheus_client import Gauge, Summary, start_http_server, make_wsgi_app, Histogram, MetricsHandler
 from werkzeug.wsgi import DispatcherMiddleware
 app = Flask(__name__)
 serial_port = None
 
-
+TEST_SERIAL_PORT = ["/dev/pts/17"]
 
 instantaneous_metrics = Gauge('mh_api_instantaneous', 'Endpoint Instantaneous Voltage', ['endpoint', 'quantity'])
+function_execution_times = Histogram('mh_api_function_latency_seconds', 'Function latency times in Seconds', ['function'])
 
 batt_soc_gauge = Gauge('battery_state_of_charge_percentage', "Battery SOC as a percentage")
 batt_volt_gauge = Gauge('battery_voltage_volts', "Battery voltage in Volts")
@@ -235,7 +236,6 @@ def co2_saved():
 @app.route('/charging_equip_status')
 def charging_equip_status():
     return "%s" % json.dumps(safe_tracer().get_charging_equip_status())
-
 
 
 if __name__ == '__main__':

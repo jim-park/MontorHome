@@ -5,6 +5,7 @@ __email__ = "jim@linuxnetworks.co.uk"
 __license__ = "Apache License, Version 2.0"
 
 import os
+import pty
 import threading
 import minimalmodbus
 from minimalmodbus import MODE_RTU
@@ -77,8 +78,9 @@ class MockTracerBN(threading.Thread):
 
             # Request for device information.
             if rx_request == RequestCodes.device_info:
-                # Return a string containing 'Tracer'.
-                tx_string = "1234xyx+_&^$#Tracer#xyx+_&^$#4321"
+                # Return a string containing 'Tracer', we read 62 bytes at the other end.
+                tx_string = "1234xyx+_&^$#Tracer#xyx+_&^$#4321" \
+                            "987654cvbnmjhytre235:OI*GS$$Rgg4("
                 # Send string.
                 self.send(tx_string)
 
@@ -313,3 +315,18 @@ class MockTracerBN(threading.Thread):
         resp = minimalmodbus._embedPayload(1, MODE_RTU, functioncode, '%s' % bytearray(tx_data))
         # Send response.
         print "MockTracer send: %s (%d)" % (resp, os.write(self.fd, resp))
+
+
+if __name__ == "__main__":
+    pid = os.getpid()
+    # Get new pty master slave ends.
+    fd_m, fd_s = pty.openpty()
+    fd_m_path = os.readlink("/proc/%s/fd/%s" % (pid, fd_m))
+    fd_s_path = os.readlink("/proc/%s/fd/%s" % (pid, fd_s))
+
+    print("Starting MockTracerBN on fd: %s, %s, connect to %s" % (fd_m, fd_m_path, fd_s_path))
+    mock_tracer = MockTracerBN(fd=fd_m)
+    mock_tracer.num_of_requests = 10
+    mock_tracer.run()           # Don't start thread.
+
+    print("Exiting MockTracerBN")
