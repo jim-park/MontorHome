@@ -13,8 +13,6 @@ from werkzeug.wsgi import DispatcherMiddleware
 app = Flask(__name__)
 serial_port = None
 
-TEST_SERIAL_PORT = ["/dev/pts/17"]
-
 instantaneous_metrics = Gauge('mh_api_instantaneous', 'Endpoint Instantaneous Voltage', ['endpoint', 'quantity'])
 function_execution_times = Histogram('mh_api_function_latency_seconds', 'Function latency times in Seconds', ['function'])
 
@@ -25,6 +23,7 @@ batt_curr_gauge = Gauge('battery_current_amperes', "Battery current in Amperes")
 pv_volt_gauge = Gauge('pv_voltage_volts', "PV voltage in Volts")
 pv_power_gauge = Gauge('pv_power_watts', "PV power in Watts")
 pv_curr_gauge = Gauge('pv_current_amperes', "PV current in Amperes")
+
 
 def safe_tracer():
     global serial_port
@@ -42,9 +41,11 @@ def safe_tracer():
     # If we've reached here we've failed. Exit and let supervisor restart us.
     exit(-1)
 
+
 app_dispatch = DispatcherMiddleware(app, {
   '/metrics': make_wsgi_app()
 })
+
 
 #
 # Battery info
@@ -117,7 +118,6 @@ def batt_rated_voltage():
     tmp = safe_tracer().get_batt_rated_voltage()
     instantaneous_metrics.labels(endpoint="battery_rated", quantity='voltage').set(tmp)
     return "%s" % tmp
-
 
 
 #
@@ -247,4 +247,3 @@ if __name__ == '__main__':
         app.run(debug=False, port=21001, host='0.0.0.0', threaded=False)
     except Exception as e:
         print "ERROR: Exiting: %s" % e
-

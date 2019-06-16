@@ -5,16 +5,18 @@ __email__ = "jim@linuxnetworks.co.uk"
 __license__ = "Apache License, Version 2.0"
 
 import os
+import sys
 import pty
 import unittest
 from time import struct_time
 
-# Import items under test.
-from tracerbn import find_serial_port
-from tracerbn import TracerBN
-
 # Import mocked device to test against.
 from mock_tracerbn import MockTracerBN
+
+# Import items under test.
+sys.path.append('../')
+from tracerbn import find_serial_port
+from tracerbn import TracerBN
 
 
 class TestTracerBN(unittest.TestCase):
@@ -101,7 +103,7 @@ class TestTracerBN(unittest.TestCase):
 
     def test_get_batt_power_success(self):
         """ Test get_batt_power() method returns a value between 0.0 and 655.35. """
-        self.assertFuncIsWithinRange(self.driver.get_batt_power, 0.0, 655.35)
+        self.assertFuncIsWithinRange(self.driver.get_batt_power, -327.68, 327.67)
 
     def test_get_batt_temp_success(self):
         """ Test get_batt_temp() method returns a value between -327.68 and 327.67. """
@@ -281,7 +283,7 @@ class TestTracerBN(unittest.TestCase):
     def test_get_ctl_rtclock_time(self):
         """ Test get_ctl_rtclock_time() returns an instance of a time.struct_time. """
         # This functon will make 6 modbus requests; Y, M, D, h, m and seconds.
-        self.mock_tracer.num_of_requests = 6
+        self.mock_tracer._num_of_requests = 6
 
         self.mock_tracer.start()
 
