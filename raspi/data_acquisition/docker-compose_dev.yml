@@ -1,0 +1,27 @@
+version: '2.0'
+services:
+  daq:
+    build: .
+    image: daq_t:1.0
+#    stdin_open: true
+#    tty: true
+    #ports:
+    #  - "21001:21001"
+    volumes:
+      #- /home/pi/mh_api_container:/app
+      - /home/user1/Montorhome/mh_project/raspi/data_acquisition:/app
+      # NOTE: mounting '/dev/mock_tracerbn' as a volume, it don't work otherwise :(
+      #- /dev/mock_tracerbn:/dev/ttyUSB0
+    environment:
+      - LOG_STATUS_PERIOD=5
+      - API_URL=http://192.168.8.101
+      - API_HTTP_PORT=21001
+      - API_FETCH_PERIOD=5.0
+      - DB_HOST=192.168.8.101
+      - DB_PORT=8086
+      - DB_NAME=tracerbn_db_dev
+      - ENDPOINTS=batt_voltage batt_current batt_power batt_soc batt_temperature
+                  pv_voltage pv_current pv_power
+                  load_voltage load_current load_power
+
+    command: ./daq.py
