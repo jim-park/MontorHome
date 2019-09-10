@@ -200,13 +200,24 @@ class MockTracerBN(threading.Thread):
     def send(self, tx_data, functioncode=4):
         """ Write response data back to the driver. """
         # Allow minimalmodbus to put the final response together for us, adding the crc.
-        resp = minimalmodbus._embedPayload(1, MODE_RTU, functioncode, '%s' % bytearray(tx_data))
+        resp = minimalmodbus._embed_payload(1, MODE_RTU, functioncode, '%s' % bytearray(tx_data))
         # Send response.
         print "MockTracer send: %s (%d)" % (resp, os.write(self.fd, resp))
 
 
 def create_symlink(src, dest):
-    # Symlink the slave fd path to /dev/mock_tracerbn for consistency.
+
+    from pwd import getpwnam
+    import grp
+    # Change group and permissions of src correctly before symlinking.
+    try:
+        os.chown(src, 0, grp.getgrnam('dialout')[2])
+        os.chmod(src, 0660)
+    except (OSError, ValueError) as e:
+        print("Could not change group ownership and/or set group permissions on: %s" % src)
+        print("Reason: %s" % e)
+
+    # Symlink the slave fd path for consistency.
     try:
         if os.path.islink(dest):
             os.unlink(dest)
@@ -221,7 +232,7 @@ def create_symlink(src, dest):
 if __name__ == "__main__":
     # This runs TracerBN as an emulator / simulator in place of the real thing.
 
-    link_dest = '/dev/mock_tracerbn'
+    link_dest = '/dev/ttyUSB0'
     pid = os.getpid()
     # Get new pty master slave ends.
     fd_m, fd_s = pty.openpty()

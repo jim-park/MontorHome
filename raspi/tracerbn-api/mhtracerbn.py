@@ -358,8 +358,8 @@ def find_serial_port(ports_list=None):
                 else:
                     print "A device is present at %s, but is not a TracerBN" % port
 
-        except (serial.SerialException, serial.SerialTimeoutException):
-            print "Failed to find device on port %s" % port
+        except (serial.SerialException, serial.SerialTimeoutException) as e:
+            print "Failed to find device on port %s. e: %s" % (port, e)
 
     # If we haven't found a device on a port by this point,
     # raise an exception. The device cannot be found.

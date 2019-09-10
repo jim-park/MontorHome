@@ -1,0 +1,51 @@
+#!/bin/bash
+
+
+#
+# Python minimalmodbus
+#
+# Test if minalmodbus is installed, supress "ImportError: No module named minimalmodsus" stderr output.
+python -c "import minimalmodbus" 2> /dev/null
+if [ $? -eq 0 ];
+then
+    echo "Python module minimalmodbus is already installed, skipping installation.";
+else
+    echo "Installing Python module minimalmodbus."
+    # Download to tmp
+    cd /tmp
+    wget -q https://files.pythonhosted.org/packages/db/9d/aa72b09d966fe6f30dc90d0dd1e295e2ebadc3a5b08d8bc0a4dfdd9473ca/minimalmodbus-1.0.2.tar.gz
+    # Extract tarball
+    tar -xzf /tmp/minimalmodbus-1.0.2.tar.gz
+    cd minimalmodbus-1.0.2
+    # Build and install
+    ./setup.py build
+    ./setup.py install
+    # Tidy up
+    rm -rf /tmp/minimalmodbus-1.0.2*
+fi
+
+#
+# Uwsgi
+#
+if [ -L /etc/uwsgi/apps-enabled/mh-tracerbn-api-uwsgi.ini ]; then
+  echo "Skipping creation of uwsgi apps-enabled symlink. Symlink aready exists.";
+else
+  ln -s /etc/uwsgi/apps-available/mh-tracerbn-api-uwsgi.ini /etc/uwsgi/apps-enabled/;
+  echo "Created uwsgi apps-enabled symlink";
+fi
+usermod -a -G dialout www-data
+service uwsgi restart
+
+#
+# Setup and enable grafana-rpi
+#
+apt install grafana-rpi
+chown grafana:grafana /var/lib/grafana/grafana.db
+systemctl daemon-reload
+systemctl enable grafana-server
+systemctl start grafana-server
+
+#
+# Supervisord
+#
+service supervisor reload

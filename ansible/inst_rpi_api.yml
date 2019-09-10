@@ -6,19 +6,19 @@
   tasks:
 
     # Copy API executable
-    - name: copy api.py to remote
+    - name: copy mh-tracerbn-api.py to remote
       become: yes
       become_user: mh
       copy:
-        src: ../raspi/api.py
+        src: ../raspi/mh-tracerbn-api.py
         dest: /opt/mh/bin/
 
     # Copy TracerBN driver
-    - name: copy tracerbn.py to remote
+    - name: copy mhtracerbn.py to remote
       become: yes
       become_user: mh
       copy:
-        src: ../raspi/tracerbn.py
+        src: ../raspi/mhtracerbn.py
         dest: /opt/mh/bin/
 
     # Restart api process using supervisord

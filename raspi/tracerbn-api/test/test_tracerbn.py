@@ -15,8 +15,8 @@ from mock_tracerbn import MockTracerBN
 
 # Import items under test.
 sys.path.append('../')
-from tracerbn import find_serial_port
-from tracerbn import TracerBN
+from mhtracerbn import find_serial_port
+from mhtracerbn import TracerBN
 
 
 class TestTracerBN(unittest.TestCase):

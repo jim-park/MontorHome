@@ -1,0 +1,7 @@
+Package: mh-tracerbn
+Version: 1.0
+Maintainer: Jim Park jim@linuxnetworks.co.uk
+Description: Tools to control and monitor a TracerBN solar controller.
+Homepage: https://www.linuxnetworks.co.uk
+Architecture: all
+Depends: python-flask, python-serial, python-flask, python-influxdb, uwsgi, uwsgi-plugin-python, supervisor, influxdb
