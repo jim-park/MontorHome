@@ -4,7 +4,6 @@ __author__ = "James Park"
 __email__ = "jim@linuxnetworks.co.uk"
 __license__ = "Apache License, Version 2.0"
 
-import os
 import sys
 import unittest
 import subprocess
@@ -18,8 +17,7 @@ from mock_tracerbn2 import MockTracerBN2
 
 # Import items under test.
 sys.path.append('../')
-from mhtracerbn import find_serial_port
-from mhtracerbn import TracerBN
+from mhtracerbn import TracerBN, find_serial_port
 
 # Setup logging
 FORMAT = ('%(asctime)-15s %(threadName)-15s'
@@ -46,7 +44,7 @@ class TestTracerBN(unittest.TestCase):
         self.fd_s_path = '/tmp/ttymocktracerbn_%s' % rand_str
         self.fd_m_path = '/tmp/ttyUSB0_%s' % rand_str
 
-        # Run socat in a seperate thread.
+        # Run socat in a separate thread.
         cmd=['/usr/bin/socat','-d','-d','-d','PTY,link=%s,raw,echo=0,ispeed=115200' % self.fd_s_path,
                                              'PTY,link=%s' % self.fd_m_path]
         self.socat_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -112,7 +110,6 @@ class TestTracerBN(unittest.TestCase):
 
         value = self.driver.read_long_tracer(int(0x9992), numberOfDecimals=4, signed=True)
         self.assertIsWithinRange(value, -214748.3648, 214748.3647)
-
 
     #
     # Test battery related methods.
@@ -247,7 +244,6 @@ class TestTracerBN(unittest.TestCase):
         """ Test get_pv_voltage_min_today() method returns a value between 0.0 and 655.35. """
         self.assertFuncIsWithinRange(self.driver.get_pv_voltage_min_today, 0.0, 655.35)
 
-
     #
     # Test controller general parameters related methods.
     #
@@ -274,7 +270,6 @@ class TestTracerBN(unittest.TestCase):
     def test_get_co2_saved(self):
         """ Test get_co2_saved() returns a value between 0.0 and 42949672.95. """
         self.assertFuncIsWithinRange(self.driver.get_co2_saved, 0.0, 42949672.95)
-
 
     #
     # Controller Clock related.
