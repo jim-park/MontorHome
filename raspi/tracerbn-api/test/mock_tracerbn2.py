@@ -1,20 +1,15 @@
 #!/usr/bin/env python
 from __builtin__ import type
-from pymodbus.server.sync import StartTcpServer
-from pymodbus.server.sync import StartUdpServer
-from pymodbus.server.sync import StartSerialServer, ModbusSerialServer
+from pymodbus.server.sync import ModbusSerialServer
 
 from pymodbus.device import ModbusDeviceIdentification
-from pymodbus.datastore import ModbusSequentialDataBlock, ModbusSparseDataBlock
+from pymodbus.datastore import ModbusSparseDataBlock
 from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext
 
-from pymodbus.transaction import ModbusRtuFramer, ModbusBinaryFramer
+from pymodbus.transaction import ModbusRtuFramer
 from collections import defaultdict
-import pymodbus
 import json
 import threading
-import pprint
-import sys
 import logging
 
 # Setup standard logging
@@ -54,7 +49,7 @@ class MockTracerBN2(threading.Thread):
         if self.server.is_running:
             self.server.server_close()
             del self.server
-            sys.exit()
+
 
 def initialise_device_identity(mappings=None):
     """ Initialise device identity (MEI) using information
@@ -76,6 +71,7 @@ def initialise_device_identity(mappings=None):
 
     return identity
 
+
 # --------------------------------------------------------------------------- #
 # raw mapping input parsers
 # --------------------------------------------------------------------------- #
@@ -90,7 +86,7 @@ def json_mapping_parser(path):
 
     mappings = defaultdict(dict)
     reg_types_list = ['di', 'ir', 'co', 'hr']
-    map(lambda func_code: mappings[func_code], reg_types_list)
+    map(lambda x: mappings[x], reg_types_list)
     offset = 1
 
     try:
@@ -108,9 +104,9 @@ def json_mapping_parser(path):
                 # Deal with data registers in this block
                 for reg in device[reg_type]:
                     # Exit quick if not defined
-                    if not reg.get('address', False) or not reg.get('value', False): continue
+                    if not reg.get('address', False) or not reg.get('value', False):
+                        continue
 
-                    address = None
                     values = []
                     i = 0
 
@@ -119,14 +115,14 @@ def json_mapping_parser(path):
                     address = int(a) if type(a) == int else int(a, 16)
 
                     # Apply scaling.
-                    v = int( reg.get('value') * reg.get('scale', 1) )   # if no scaling attribute found default to 1.
+                    v = int(reg.get('value') * reg.get('scale', 1))   # if no scaling attribute found default to 1.
 
                     # Deal with values which have size > 16 bits.
                     if reg.get('length', 1) is 1:                       # if no length attribute found, default to 1.
                         values.append(v)
                     elif reg.get('length') == 2:
-                            values.append( v & 0x0000FFFF )
-                            values.append( (v & 0xFFFF0000) >> 16 )
+                        values.append(v & 0x0000FFFF)
+                        values.append((v & 0xFFFF0000) >> 16)
                     else:
                         raise(Exception("can't handle data length > 2 bytes !"))
 
@@ -139,7 +135,7 @@ def json_mapping_parser(path):
     except Exception as e:
         log.error("json_mapping_parser Failed to load json description file %s" % path)
         log.error("json_mapping_parser Exception was: %s" % e)
-        raise(e)
+        raise e
 
     # Build ModBus data blocks
     for func_code in reg_types_list:
@@ -157,5 +153,3 @@ def json_mapping_parser(path):
 if __name__ == "__main__":
     mock_tracerbn = MockTracerBN2()
     # mock_tracerbn.start()
-
-
