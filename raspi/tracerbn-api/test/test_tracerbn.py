@@ -6,17 +6,27 @@ __license__ = "Apache License, Version 2.0"
 
 import os
 import sys
-import pty
 import unittest
+import subprocess
+import string
+import random
+import logging
 from time import struct_time
 
 # Import mocked device to test against.
-from mock_tracerbn import MockTracerBN
+from mock_tracerbn2 import MockTracerBN2
 
 # Import items under test.
 sys.path.append('../')
 from mhtracerbn import find_serial_port
 from mhtracerbn import TracerBN
+
+# Setup logging
+FORMAT = ('%(asctime)-15s %(threadName)-15s'
+          ' %(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
+logging.basicConfig(format=FORMAT)
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
 
 
 class TestTracerBN(unittest.TestCase):
@@ -29,27 +39,41 @@ class TestTracerBN(unittest.TestCase):
 
     def setUp(self):
         """ Setup mock device, fds, and tranerbn driver. """
-        # Get new pty master slave ends.
-        self.fd_m, self.fd_s = pty.openpty()
 
-        # Set slave device path.
-        self.fd_s_path = os.ttyname(self.fd_s)
+        rand_str = ''.join(random.choice(string.ascii_lowercase) for i in range(7))
 
-        # Create a new mock tracer.
-        self.mock_tracer = MockTracerBN(self.fd_m)
+        # Device and driver ends of virtual serial port.
+        self.fd_s_path = '/tmp/ttymocktracerbn_%s' % rand_str
+        self.fd_m_path = '/tmp/ttyUSB0_%s' % rand_str
 
-        # Get the tracerbn driver under test.
-        self.driver = TracerBN(portname=self.fd_s_path)
+        # Run socat in a seperate thread.
+        cmd=['/usr/bin/socat','-d','-d','-d','PTY,link=%s,raw,echo=0,ispeed=115200' % self.fd_s_path,
+                                             'PTY,link=%s' % self.fd_m_path]
+        self.socat_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        try:
+            # Create a new mock tracer.
+            self.mock_tracer = MockTracerBN2(self.fd_m_path)
+
+            # Get the tracerbn driver under test.
+            self.driver = TracerBN(portname=self.fd_s_path)
+
+        except Exception as e:
+            log.error("ERROR: %s" % e)
+            self.socat_proc.terminate()
+            self.socat_proc.wait()
+            raise(e)
 
     def tearDown(self):
         """ Stop and delete mock device, close file descriptors. """
         # Join the thread if required.
         if self.mock_tracer.isAlive():
+            self.mock_tracer.stop()
             self.mock_tracer.join(1.0)
 
-        # Close our pty master and slave ends.
-        os.close(self.fd_m)
-        os.close(self.fd_s)
+        self.socat_proc.terminate()
+        self.socat_proc.wait()
+        self.out, self.err = self.socat_proc.communicate()
 
         # Delete our MockTracerBN instance.
         del self.mock_tracer
@@ -130,7 +154,6 @@ class TestTracerBN(unittest.TestCase):
         self.mock_tracer.start()
 
         returned_array = self.driver.get_batt_status()
-        print returned_array
 
         # Test element0 - batt status - is within range 0 to 4.
         self.assertIsWithinRange(returned_array[0], 0, 4)

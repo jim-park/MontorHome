@@ -1,0 +1,254 @@
+{
+	"device": {
+		"identity": {
+			"modelname": "TracerBN",
+        	"vendorname": "Epever",
+        	"productcode": "TracerBN",
+        	"vendorurl": "VendorURL",
+        	"productname": "TracerBN 30",
+        	"majorminorrevision": "1.2.3"
+		},
+		"ir": [
+			{
+				"name": "Battery rated voltage",
+				"description": "Rated voltage to battery",
+				"address": "0x3004",
+				"datatype": "int16",
+				"length": 1,
+				"value": 12,
+				"scale": 100,
+				"unit": "V"
+			},
+			{
+				"name": "PV array input voltage",
+				"description": "Solar charge controller - PV array voltage",
+				"address": "0x3100",
+				"datatype": "int16",
+				"length": 1,
+				"value": 50,
+				"scale": 100,
+				"unit": "V"
+			},
+			{
+				"name": "PV array input current",
+				"description": "Solar charge controller - PV array current",
+				"address": "0x3101",
+				"datatype": "int16",
+				"length": 1,
+				"value": 1.6,
+				"scale": 100,
+				"unit": "A"
+			},
+			{
+				"name": "PV array input power",
+				"description": "Solar charge controller- PV array power",
+				"address": "0x3102",
+				"datatype": "int32",
+				"length": 2,
+				"value": 45.67,
+				"scale": 100,
+				"unit": "W"
+			},
+			{
+				"name": "Battery power",
+				"description": "Battery charging power",
+				"address": "0x3106",
+				"datatype": "int32",
+				"length": 2,
+				"value": 12.34,
+				"scale": 100,
+				"unit": "W"
+			},
+			{
+				"name": "Load voltage",
+				"description": "Load voltage",
+				"address": "0x310C",
+				"datatype": "int16",
+				"length": 1,
+				"value": 12.75,
+				"scale": 100,
+				"unit": "V"
+			},
+			{
+				"name": "Load current",
+				"description": "Load current",
+				"address": "0x310D",
+				"datatype": "int16",
+				"length": 1,
+				"value": 1.23,
+				"scale": 100,
+				"unit": "A"
+			},
+			{
+				"name": "Battery Temperature",
+				"description": "Battery Temperature",
+				"address": "0x3110",
+				"datatype": "int16",
+				"length": 1,
+				"value": 25.25,
+				"scale": 100,
+				"unit": "degC"
+			},
+			{
+				"name": "Temperature inside equipment",
+				"description": "Temperature inside case",
+				"address": "0x3111",
+				"datatype": "int16",
+				"length": 1,
+				"value": 25.28,
+				"scale": 100,
+				"unit": "degC"
+			},
+			{
+				"name": "Battery SOC",
+				"description": "The percentage of batterys remaining capacity",
+				"address": "0x311A",
+				"datatype": "int16",
+				"length": 1,
+				"value": 75.2,
+				"scale": 1,
+				"unit": "%"
+			},
+			{
+				"name": "Remote battery temperature",
+				"description": "The battery temperature measured by remote temperature sensor",
+				"address": "0x311B",
+				"datatype": "int16",
+				"length": 1,
+				"value": 24.5,
+				"scale": 100,
+				"unit": "degC"
+			},
+			{
+				"name": "Battery's real rated power",
+				"description": "Current system rated voltage. 1200, 2400, 3600, 4800 represent 12V, 24V, 36V, 48V",
+				"address": "0x311D",
+				"datatype": "int16",
+				"length": 1,
+				"value": 12,
+				"scale": 100,
+				"unit": ""
+			},
+			{
+				"name": "Maximium PV voltage today",
+				"description": "00: 00 Refresh every day",
+				"address": "0x3300",
+				"datatype": "int16",
+				"length": 1,
+				"value": 50.55,
+				"scale": 100,
+				"unit": "V"
+			},
+			{
+				"name": "Minimium PV voltage today",
+				"description": "00: 00 Refresh every day",
+				"address": "0x3301",
+				"datatype": "int16",
+				"length": 1,
+				"value": 1.55,
+				"scale": 100,
+				"unit": "V"
+			},
+			{
+				"name": "Maximium Battery voltage today",
+				"description": "00: 00 Refresh every day",
+				"address": "0x3302",
+				"datatype": "int16",
+				"length": 2,
+				"value": 14.55,
+				"scale": 100,
+				"unit": "V"
+			},
+			{
+				"name": "Minimium Battery voltage today",
+				"description": "00: 00 Refresh every day",
+				"address": "0x3303",
+				"datatype": "int16",
+				"length": 1,
+				"value": 11.50,
+				"scale": 100,
+				"unit": "V"
+			},
+			{
+				"name": "Consumed energy today",
+				"description": "00: 00 Clear every day",
+				"address": "0x3304",
+				"datatype": "int32",
+				"length": 2,
+				"value": 1112.23,
+				"scale": 100,
+				"unit": "kWh"
+			},
+			{
+				"name": "Generated energy today",
+				"description": "00: 00 Clear every day",
+				"address": "0x330C",
+				"datatype": "int32",
+				"length": 2,
+				"value": 8888.44,
+				"scale": 100,
+				"unit": "kWh"
+			},
+			{
+				"name": "Generated energy this month",
+				"description": "00: 00 Clear on the first day of month.",
+				"address": "0x330E",
+				"datatype": "int32",
+				"length": 2,
+				"value": 888888.44,
+				"scale": 100,
+				"unit": "kWh"
+			},
+			{
+				"name": "Generated energy this year",
+				"description": "00: 00 Clear on 1, Jan.",
+				"address": "0x3310",
+				"datatype": "int32",
+				"length": 2,
+				"value": 88888888.44,
+				"scale": 100,
+				"unit": "kWh"
+			},
+			{
+				"name": "Total generated energy",
+				"description": "",
+				"address": "0x3312",
+				"datatype": "int32",
+				"length": 2,
+				"value": 8888888888.44,
+				"scale": 100,
+				"unit": "kWh"
+			},
+			{
+				"name": "Battery Voltage",
+				"description": "Battery Voltage",
+				"address": "0x331A",
+				"datatype": "int16",
+				"length": 1,
+				"value": 12.75,
+				"scale": 100,
+				"unit": "V"
+			},
+			{
+				"name": "Battery Current",
+				"description": "Battery Current",
+				"address": "0x331B",
+				"datatype": "int32",
+				"length": 2,
+				"value": 1.248,
+				"scale": 100,
+				"unit": "A"
+			}
+		],
+		"di": [{
+			"name": "Day/Night",
+			"description": "Day / Night (1/0)",
+			"address": "0x200C",
+			"datatype": "bit",
+			"length": 1,
+			"value": 0
+		}],
+		"hr": [],
+		"co": []
+	}
+}
