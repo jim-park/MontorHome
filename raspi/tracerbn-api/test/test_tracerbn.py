@@ -4,8 +4,10 @@ __author__ = "James Park"
 __email__ = "jim@linuxnetworks.co.uk"
 __license__ = "Apache License, Version 2.0"
 
+import os
 import sys
 import unittest
+import xmlrunner
 import subprocess
 import string
 import random
@@ -16,7 +18,7 @@ from time import struct_time
 from mock_tracerbn2 import MockTracerBN2
 
 # Import items under test.
-sys.path.append('../')
+sys.path.append('%s/../' % os.path.dirname(__file__))
 from mhtracerbn import TracerBN, find_serial_port
 
 # Setup logging
@@ -332,4 +334,5 @@ class TestTracerBN(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.run()
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'))
+    # unittest.run()

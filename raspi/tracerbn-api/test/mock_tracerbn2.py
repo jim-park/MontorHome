@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __builtin__ import type
+# from __builtin__ import type
 from pymodbus.server.sync import ModbusSerialServer
 
 from pymodbus.device import ModbusDeviceIdentification
@@ -9,6 +9,7 @@ from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext
 from pymodbus.transaction import ModbusRtuFramer
 from collections import defaultdict
 import json
+import os
 import threading
 import logging
 
@@ -19,10 +20,12 @@ logging.basicConfig(format=FORMAT)
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
+# json file should be in the same directory as this file
+DEVICE_JSON_DESC_PATH = '%s/mock_tracerbn_reg_map.json' % os.path.dirname(os.path.abspath(__file__))
 
 class MockTracerBN2(threading.Thread):
 
-    def __init__(self, serial_port='/dev/pts/4', json_device_desc_path='./mock_tracerbn_reg_map.json'):
+    def __init__(self, serial_port='/dev/pts/4', json_device_desc_path=DEVICE_JSON_DESC_PATH):
         threading.Thread.__init__(self, name='MockTracerBN2')
         self._serial_port = serial_port
 

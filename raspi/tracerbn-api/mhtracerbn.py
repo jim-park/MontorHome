@@ -140,8 +140,8 @@ class TracerBN(minimalmodbus.Instrument):
         #     (0) Correct id for rated voltage | (1) Wrong id for rated voltage
         batt_rated_voltage_fault = (statuses & 0x8000) >> 15
 
-        print "drv: status: %d, temp status: %d, bir fault: %d, rated voltage fault: %d" % \
-              (batt_status, batt_temp_status, bir_fault, batt_rated_voltage_fault)
+        # print "drv: status: %d, temp status: %d, bir fault: %d, rated voltage fault: %d" % \
+        #       (batt_status, batt_temp_status, bir_fault, batt_rated_voltage_fault)
 
         return [batt_status, batt_temp_status, bir_fault, batt_rated_voltage_fault]
 
@@ -353,13 +353,13 @@ def find_serial_port(ports_list=None):
                 dev_info = s.read(int(62))  # read 62 bytes of device information returned
 
                 if dev_info.find("Tracer") is not -1:
-                    print "Found TracerBN on %s" % port
+                    print("Found TracerBN on %s" % port)
                     return port
                 else:
-                    print "A device is present at %s, but is not a TracerBN" % port
+                    print("A device is present at %s, but is not a TracerBN" % port)
 
         except (serial.SerialException, serial.SerialTimeoutException) as e:
-            print "Failed to find device on port %s. e: %s" % (port, e)
+            print("Failed to find device on port %s. e: %s" % (port, e))
 
     # If we haven't found a device on a port by this point,
     # raise an exception. The device cannot be found.
