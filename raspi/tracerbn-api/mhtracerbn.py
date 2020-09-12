@@ -45,7 +45,7 @@ class TracerBN(minimalmodbus.Instrument):
         self.serial.flush()     # Flush the serial buffer, before we begin
 
     #
-    # Wrapper for minimalmonbus read_long() method.
+    # Wrapper for minimalmodbus read_long() method.
     #
     def read_long_tracer(self, registeraddress, numberOfDecimals=0, functioncode=4, signed=False):
         """ Read 2 registers (32-bits) from the tracerbn. Deal with negative values and divisors. """
