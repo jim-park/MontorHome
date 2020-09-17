@@ -92,22 +92,22 @@ def pv_current():
     return "%s" % device.get_pv_current()
 
 
-@app.route('/load_voltage')
-def load_voltage():
-    return "%s" % device.get_load_voltage()
-
-
-#
-# Load info
 @app.route('/pv_power')
 def pv_power():
     return "%s" % device.get_pv_power()
 
 
+#
+# Load info
+#
+@app.route('/load_voltage')
+def load_voltage():
+    return "%s" % device.get_load_voltage()
+
+
 @app.route('/load_current')
 def load_current():
     return "%s" % device.get_load_current()
-#
 
 
 @app.route('/load_power')
