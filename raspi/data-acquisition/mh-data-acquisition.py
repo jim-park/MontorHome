@@ -76,7 +76,8 @@ def db_connect():
         db_client.switch_database(db_name)
 
     except Exception as e:
-        log.error("Failed to connect to DB")
+        log.error("Exception connecting to DB.")
+        log.error("e: %s" % str(e))
         raise e
     else:
         log.info("Connected to DB OK")
@@ -103,7 +104,12 @@ def main():
             # Fetch data from all endpoints.
             #
             for endpoint in endpoints.keys():
-                f = urllib.request.urlopen("%s:%s/%s" % (api_url, api_http_port, endpoint))
+                try:
+                    f = urllib.request.urlopen("%s:%s/%s" % (api_url, api_http_port, endpoint))
+                except ConnectionError as e:
+                    log.error("Exception connecting to API.")
+                    log.error("e: %s" % str(e))
+                    raise e
                 endpoints[endpoint] = float(f.read())
 
                 counter = counter + 1
@@ -129,7 +135,6 @@ def main():
             time.sleep(api_fetch_period)
 
     except Exception as e:
-        log.exception(e)
         log.error("Caught Exception, Exiting")
         running = False
 
