@@ -3,6 +3,7 @@
 import time
 import signal
 import urllib.request
+import requests
 import logging
 from influxdb import InfluxDBClient
 from configparser import ConfigParser
@@ -67,20 +68,39 @@ def handler(a, b):  # define the handler
 # Connect to InfluxDB
 def db_connect():
     global db_client
+    db_connected = False
+    # TODO - make hardcoded values configurable items
+    retry_wait_secs = 10
+    max_retries = 5
+    retry_counter = max_retries
 
-    try:
-        db_client = InfluxDBClient(host=db_host, port=db_port)
-        if db_name not in [v['name'] for v in db_client.get_list_database()]:
-            db_client.create_database(db_name)
-            log.debug("Database: %s created on host %s" % (db_name, db_host))
-        db_client.switch_database(db_name)
+    while not db_connected and retry_counter > 0:
+        try:
+            db_client = InfluxDBClient(host=db_host, port=db_port)
+            if db_name not in [v['name'] for v in db_client.get_list_database()]:
+                db_client.create_database(db_name)
+                log.debug("Database: %s created on host %s" % (db_name, db_host))
+            db_client.switch_database(db_name)
 
-    except Exception as e:
-        log.error("Exception connecting to DB.")
-        log.error("e: %s" % str(e))
-        raise e
-    else:
-        log.info("Connected to DB OK")
+        except requests.exceptions.ConnectionError as e:
+            log.error("ConnectionError exception connecting to DB ... still starting up?")
+            retry_counter -= 1
+
+            # Too many retry attempts, exit
+            if retry_counter <= 0:
+                log.warning("DB connection retries (%d) exceeded, giving up" % max_retries)
+                raise e
+
+            # We're probably just starting up, so wait a while ...
+            time.sleep(retry_wait_secs)
+
+        except Exception as e:
+            log.error("Unhandled Exception connecting to DB.")
+            log.exception(e)
+            raise e
+        else:
+            db_connected = True
+            log.info("Connected to DB OK")
 
 
 # Main run loop
