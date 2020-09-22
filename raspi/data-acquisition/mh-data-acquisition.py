@@ -5,7 +5,7 @@ import signal
 import urllib.request
 import requests
 import logging
-from influxdb import InfluxDBClient
+import influxdb
 from configparser import ConfigParser
 
 # Global vars.
@@ -60,7 +60,7 @@ log.info("loaded config:\n" \
 
 # Signal handler.
 def handler(a, b):  # define the handler
-    log.info("Caught SIGTERM signal. Shutting down")
+    log.info("Caught SIGTERM signal. Exiting")
     global running
     running = False
 
@@ -76,7 +76,7 @@ def db_connect():
 
     while not db_connected and retry_counter > 0:
         try:
-            db_client = InfluxDBClient(host=db_host, port=db_port)
+            db_client = influxdb.InfluxDBClient(host=db_host, port=db_port)
             if db_name not in [v['name'] for v in db_client.get_list_database()]:
                 db_client.create_database(db_name)
                 log.debug("Database: %s created on host %s" % (db_name, db_host))
@@ -138,13 +138,21 @@ def main():
             # Format data for db.
             #
             json_body[0]['fields'] = endpoints
-            #log.info("json_body[fields]: %s" % json_body[0]['fields'])
+            # log.info("json_body[fields]: %s" % json_body[0]['fields'])
 
             #
             # Insert data into db
             #
-            # pprint.pprint(json_body)
-            db_client.write_points(json_body)
+            try:
+                # pprint.pprint(json_body)
+                db_client.write_points(json_body)
+            except (requests.exceptions.ConnectionError, influxdb.exceptions.InfluxDBServerError) as e:
+                log.error("ConnectionError or InfluxDBServerError exception writing data to DB")
+                raise e
+            except Exception as e:
+                log.error("Unhandled Exception writing data to DB.")
+                log.exception(e)
+                raise e
 
             # Log (sparingly) for reassurance.
             if time.time() - now > log_status_period:
@@ -159,8 +167,9 @@ def main():
         running = False
 
     finally:
-        log.info("Closing db client connection")
-        db_client.close()
+        if type(db_client) is influxdb.client.InfluxDBClient:
+            log.info("Closing db client connection")
+            db_client.close()
 
 
 if __name__ == "__main__":
