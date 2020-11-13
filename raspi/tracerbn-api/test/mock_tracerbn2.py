@@ -1,11 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # from __builtin__ import type
 from pymodbus.server.sync import ModbusSerialServer
-
 from pymodbus.device import ModbusDeviceIdentification
-from pymodbus.datastore import ModbusSparseDataBlock
-from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext
-
+from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext, ModbusSparseDataBlock, ModbusSequentialDataBlock
 from pymodbus.transaction import ModbusRtuFramer
 from collections import defaultdict
 import json
@@ -18,7 +15,7 @@ FORMAT = ('%(asctime)-15s %(threadName)-15s'
           ' %(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
 logging.basicConfig(format=FORMAT)
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.WARN)
 
 # json file should be in the same directory as this file
 DEVICE_JSON_DESC_PATH = '%s/mock_tracerbn_reg_map.json' % os.path.dirname(os.path.abspath(__file__))
@@ -31,9 +28,13 @@ class MockTracerBN2(threading.Thread):
 
         # Build data backing store from json file.
         mappings = json_mapping_parser(json_device_desc_path)
-        store = ModbusSlaveContext(**mappings)
+        store = ModbusSlaveContext(
+            di = ModbusSparseDataBlock(mappings['di']),
+            co = ModbusSparseDataBlock(mappings['co']),
+            ir = ModbusSparseDataBlock(mappings['ir']),
+            hr = ModbusSparseDataBlock(mappings['hr'])
+        )
         identity = initialise_device_identity(mappings)
-
         context = ModbusServerContext(slaves=store, single=True)
 
         # RTU:
@@ -62,7 +63,7 @@ def initialise_device_identity(mappings=None):
     :return: initialised ModbusDeviceIdentification object
     """
     identity = ModbusDeviceIdentification()
-    if mappings.get('identity', None):
+    if mappings.get('identity', False):
         ident_data = dict(mappings.get('identity'))
 
         identity.VendorName = ident_data.get('vendorname')
@@ -87,9 +88,7 @@ def json_mapping_parser(path):
     :returns: The decoded json dictionary
     """
 
-    mappings = defaultdict(dict)
-    reg_types_list = ['di', 'ir', 'co', 'hr']
-    map(lambda x: mappings[x], reg_types_list)
+    mappings = defaultdict(lambda: [0x00] * 65536)  # Return empty address space by default (when key not present)
     offset = 1
 
     try:
@@ -106,8 +105,9 @@ def json_mapping_parser(path):
 
                 # Deal with data registers in this block
                 for reg in device[reg_type]:
-                    # Exit quick if not defined
+                    # Log and exit quick if not correctly defined
                     if not reg.get('address', False) or not reg.get('value', False):
+                        log.error("Skipping register. Address or Value not defined for register '%s'" % reg)
                         continue
 
                     values = []
@@ -131,7 +131,7 @@ def json_mapping_parser(path):
 
                     # Store register address-value mappings
                     for v in values:
-                        # log.debug("%s v: %s" % (reg.get('name'), v))
+                        log.debug("reg: %s, %s, v: %s" % (reg_type, reg.get('name'), v))
                         mappings[reg_type][address + offset + i] = v
                         i += 1
 
@@ -139,13 +139,6 @@ def json_mapping_parser(path):
         log.error("json_mapping_parser Failed to load json description file %s" % path)
         log.error("json_mapping_parser Exception was: %s" % e)
         raise e
-
-    # Build ModBus data blocks
-    for func_code in reg_types_list:
-        if len(mappings.get(func_code)) == 0:
-            mappings[func_code] = ModbusSparseDataBlock.create()
-        else:
-            mappings[func_code] = ModbusSparseDataBlock(mappings[func_code])
 
     return mappings
 
