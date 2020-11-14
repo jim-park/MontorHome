@@ -352,7 +352,7 @@ def find_serial_port(ports_list=None):
                 s.write(device_info_request)
                 dev_info = s.read(int(62))  # read 62 bytes of device information returned
 
-                if dev_info.find("Tracer") is not -1:
+                if dev_info.find(b"Tracer") is not -1:
                     print("Found TracerBN on %s" % port)
                     return port
                 else:

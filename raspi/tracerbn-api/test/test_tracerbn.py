@@ -26,7 +26,7 @@ FORMAT = ('%(asctime)-15s %(threadName)-15s'
           ' %(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
 logging.basicConfig(format=FORMAT)
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 class TestTracerBN(unittest.TestCase):
@@ -59,7 +59,7 @@ class TestTracerBN(unittest.TestCase):
             self.driver = TracerBN(portname=self.fd_s_path)
 
         except Exception as e:
-            log.error("ERROR: %s" % e)
+            log.error("%s" % e)
             self.socat_proc.terminate()
             self.socat_proc.wait()
             raise(e)

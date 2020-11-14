@@ -10,12 +10,8 @@ import os
 import threading
 import logging
 
-# Setup standard logging
-FORMAT = ('%(asctime)-15s %(threadName)-15s'
-          ' %(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
-logging.basicConfig(format=FORMAT)
+# Grab a logger
 log = logging.getLogger()
-log.setLevel(logging.WARN)
 
 # json file should be in the same directory as this file
 DEVICE_JSON_DESC_PATH = '%s/mock_tracerbn_reg_map.json' % os.path.dirname(os.path.abspath(__file__))
@@ -106,8 +102,8 @@ def json_mapping_parser(path):
                 # Deal with data registers in this block
                 for reg in device[reg_type]:
                     # Log and exit quick if not correctly defined
-                    if not reg.get('address', False) or not reg.get('value', False):
-                        log.error("Skipping register. Address or Value not defined for register '%s'" % reg)
+                    if not reg.get('address', False):
+                        log.warn("Skipping register. Address or Value not defined for register '%s'" % reg)
                         continue
 
                     values = []
