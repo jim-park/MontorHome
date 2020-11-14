@@ -23,9 +23,9 @@ DEB_FILES = ["conffiles",
              "postinst",
              "preinst"]
 
-MH_FILES_SRC_DST = [["../tracerbn-api/mh-tracerbn-api.py", "%s/mh-tracerbn-api.py" % PKG_LEAF_DIRS[2]],
+MH_FILES_SRC_DST = [["../tracerbn-api/mhtracerbn_api.py", "%s/mhtracerbn_api.py" % PKG_LEAF_DIRS[2]],
                     ["../tracerbn-api/mhtracerbn.py", "%s/mhtracerbn.py" % PKG_LEAF_DIRS[2]],
-                    ["../tracerbn-api/mh-tracerbn-api-uwsgi.ini", "%s/mh-tracerbn-api-uwsgi.ini" % PKG_LEAF_DIRS[1]],
+                    ["../tracerbn-api/mhtracerbn_api_uwsgi.ini", "%s/mhtracerbn_api_uwsgi.ini" % PKG_LEAF_DIRS[1]],
                     ["../data-acquisition/mh-data-acquisition.py", "%s/mh-data-acquisition.py" % PKG_LEAF_DIRS[2]],
                     ["../data-acquisition/mh-data-acquisition-supervisor.conf", "%s/mh-data-acquisition-supervisor.conf" % PKG_LEAF_DIRS[3]],
                     ["../data-acquisition/mh-data-acquisition.conf", "etc/mh-data-acquisition.conf"],

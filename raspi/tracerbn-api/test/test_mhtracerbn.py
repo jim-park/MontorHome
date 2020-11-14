@@ -38,7 +38,7 @@ class TestTracerBN(unittest.TestCase):
     """
 
     def setUp(self):
-        """ Setup mock device, fds, and tranerbn driver. """
+        """ Setup mock device, fds, and tracerbn driver. """
 
         rand_str = ''.join(random.choice(string.ascii_lowercase) for i in range(7))
 
@@ -334,5 +334,5 @@ class TestTracerBN(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'))
-    # unittest.run()
+    # unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'))
+    unittest.run()
