@@ -240,6 +240,8 @@
 				"unit": "A"
 			}
 		],
+
+
 		"di": [{
 			"name": "Day/Night",
 			"description": "Day / Night (1/0)",
@@ -248,7 +250,46 @@
 			"length": 1,
 			"value": 0
 		}],
-		"hr": [],
+
+
+		"hr": [
+
+			{
+				"name": "Real Time Clock",
+				"description": "Seconds (low byte) and Minutes (high byte)",
+				"address": "0x9013",
+				"datatype": "int16",
+				"length": 1,
+				"comment": "7981 = 0x1f2d, min=31 (0x1f), sec=45(0x2d)",
+				"comment": "7981 = int((31 << 8) + 45)",
+				"value": 7981,
+				"unit": "hex secs:mins"
+			},
+			{
+				"name": "Real Time Clock",
+				"description": "Day (high byte), Hour (low byte)",
+				"address": "0x9014",
+				"datatype": "int16",
+				"length": 1,
+				"comment": "2828 = 0x0b0c, day=11 (0x0b), hour=12 (0x0c)",
+				"comment": "2828 = int((11 << 8) + 12)",
+				"value": 2828,
+				"unit": "hex hour:day"
+			},
+			{
+				"name": "Real Time Clock",
+				"description": "Year (high byte), Month (low byte)",
+				"address": "0x9015",
+				"datatype": "int16",
+				"length": 1,
+				"comment": "5383 = 0x1507, year=21 (0x15), mon=7 (0x07)",
+				"comment": "5383 = int((21 << 9) + 7)",
+				"value": 5383,
+				"unit": "hex hour:day"
+			}
+		],
+
+
 		"co": []
 	}
 }
