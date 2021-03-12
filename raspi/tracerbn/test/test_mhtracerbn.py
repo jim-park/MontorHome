@@ -15,7 +15,7 @@ import logging
 from time import struct_time
 
 # Import mocked device to test against.
-from mock_tracerbn2 import MockTracerBN2
+from mock_tracerbn import MockTracerBN
 
 # Import items under test.
 sys.path.append('%s/../' % os.path.dirname(__file__))
@@ -53,7 +53,7 @@ class TestTracerBN(unittest.TestCase):
 
         try:
             # Create a new mock tracer.
-            self.mock_tracer = MockTracerBN2(self.fd_m_path)
+            self.mock_tracer = MockTracerBN(self.fd_m_path)
 
             # Get the tracerbn driver under test.
             self.driver = TracerBN(portname=self.fd_s_path)

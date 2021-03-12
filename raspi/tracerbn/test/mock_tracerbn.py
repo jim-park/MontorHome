@@ -14,9 +14,9 @@ import logging
 log = logging.getLogger()
 
 # json file should be in the same directory as this file
-DEVICE_JSON_DESC_PATH = '%s/mock_tracerbn_reg_map.json' % os.path.dirname(os.path.abspath(__file__))
+DEVICE_JSON_DESC_PATH = '%s/../tracerbn_reg_map.json' % os.path.dirname(os.path.abspath(__file__))
 
-class MockTracerBN2(threading.Thread):
+class MockTracerBN(threading.Thread):
 
     def __init__(self, serial_port='/dev/pts/4', json_device_desc_path=DEVICE_JSON_DESC_PATH):
         threading.Thread.__init__(self, name='MockTracerBN2')
@@ -143,5 +143,5 @@ def json_mapping_parser(path):
 # Main entry point
 # --------------------------------------------------------------------------- #
 if __name__ == "__main__":
-    mock_tracerbn = MockTracerBN2()
+    mock_tracerbn = MockTracerBN()
     # mock_tracerbn.start()
